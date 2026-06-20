@@ -447,6 +447,10 @@
       <button class="nav-btn" data-tab="classes" onclick="switchTab('classes')">
         <span>📚</span> My Classes
       </button>
+      <button class="nav-btn" data-tab="events" onclick="switchTab('events')">
+        <span>🎪</span> My Events
+        <span class="cnt" id="events-pending-cnt" style="display:none"></span>
+      </button>
       <button class="nav-btn" data-tab="messages" onclick="switchTab('messages')">
         <span>💬</span> Messages
         <span class="cnt" id="msg-cnt" style="display:none"></span>
@@ -480,15 +484,47 @@
 
         <div class="stats-row" id="dash-stats"></div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:4px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-top:4px">
           <div>
             <div style="font-size:13px;font-weight:800;color:var(--teal-dark);margin-bottom:12px">Upcoming classes</div>
             <div id="dash-upcoming"></div>
           </div>
           <div>
+            <div style="font-size:13px;font-weight:800;color:var(--teal-dark);margin-bottom:12px">Upcoming events</div>
+            <div id="dash-upcoming-events"></div>
+          </div>
+          <div>
             <div style="font-size:13px;font-weight:800;color:var(--teal-dark);margin-bottom:12px">Awaiting approval</div>
             <div id="dash-pending"></div>
           </div>
+        </div>
+      </section>
+
+      <!-- MY EVENTS -->
+      <section id="tab-events" style="display:none">
+        <div class="section-top">
+          <h2>My Events</h2>
+          <button class="btn btn-primary" onclick="openEventPanel()">+ New event</button>
+        </div>
+        <div class="filter-chips">
+          <button class="filter-chip active" data-ef="all"      onclick="setEventsFilter('all')">All</button>
+          <button class="filter-chip"        data-ef="upcoming" onclick="setEventsFilter('upcoming')">Upcoming</button>
+          <button class="filter-chip"        data-ef="past"     onclick="setEventsFilter('past')">Past</button>
+          <button class="filter-chip"        data-ef="pending"  onclick="setEventsFilter('pending')">Pending</button>
+          <button class="filter-chip"        data-ef="rejected" onclick="setEventsFilter('rejected')">Rejected</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:28%">Name</th>
+              <th style="width:16%">Category</th>
+              <th style="width:22%">Dates</th>
+              <th style="width:10%">Price</th>
+              <th style="width:12%">Status</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="events-tbody"></tbody>
+          </table>
         </div>
       </section>
 
@@ -609,9 +645,9 @@
       </div>
       <div class="panel-body" id="panel-body"></div>
       <div class="panel-footer">
-        <button class="btn btn-primary" id="panel-save-btn" onclick="saveClass()">Submit for review</button>
+        <button class="btn btn-primary" id="panel-save-btn" onclick="panelSave()">Submit for review</button>
         <button class="btn btn-ghost" onclick="closePanel()">Cancel</button>
-        <button class="btn btn-danger btn-sm" id="panel-delete-btn" style="margin-left:auto;display:none" onclick="deleteClass()">Delete</button>
+        <button class="btn btn-danger btn-sm" id="panel-delete-btn" style="margin-left:auto;display:none" onclick="panelDelete()">Delete</button>
       </div>
     </div>
   </div>
@@ -655,9 +691,9 @@ const CATEGORIES = ['Music','Sport','Art','Sensory','Swimming','Movement','Feedi
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
 
 let currentUser = null, userProfile = null
-let myClasses = []
-let activePeriod = 'week', classesFilter = 'all'
-let panelItem = null
+let myClasses = [], myEvents = []
+let activePeriod = 'week', classesFilter = 'all', eventsFilter = 'all'
+let panelItem = null, panelMode = 'class'
 
 // ── AUTH ──────────────────────────────────────────────────────────
 async function init() {
@@ -728,7 +764,7 @@ async function afterLogin(user) {
   }
 
   document.getElementById('app').style.display = 'flex'
-  await Promise.all([loadClasses(), loadMessages()])
+  await Promise.all([loadClasses(), loadEvents(), loadMessages()])
   renderDashboard()
 }
 
@@ -818,9 +854,8 @@ async function obSave() {
 async function obFinish() {
   document.getElementById('onboarding-screen').style.display = 'none'
   document.getElementById('app').style.display = 'flex'
-  await Promise.all([loadClasses(), loadMessages()])
+  await Promise.all([loadClasses(), loadEvents(), loadMessages()])
   renderDashboard()
-  // Open the new class panel straight away
   openClassPanel()
 }
 
@@ -839,6 +874,7 @@ function switchTab(tab) {
   document.querySelectorAll('section[id^="tab-"]').forEach(s => s.style.display = 'none')
   document.getElementById(`tab-${tab}`).style.display = 'block'
   if (tab === 'classes')  renderClassesTable()
+  if (tab === 'events')   renderEventsTable()
   if (tab === 'messages') renderMessages()
   if (tab === 'profile')  renderProfileTab()
 }
@@ -1038,6 +1074,8 @@ function renderDashboard() {
   const { from, to } = getPeriodRange()
   const approved = myClasses.filter(c => c.status === 'approved')
   const pending  = myClasses.filter(c => c.status === 'pending')
+  const approvedEvents = myEvents.filter(e => e.status === 'approved')
+  const pendingEvents  = myEvents.filter(e => e.status === 'pending')
 
   let totalSessions = 0, totalRevenue = 0
   approved.forEach(c => {
@@ -1063,7 +1101,11 @@ function renderDashboard() {
       <div class="stat-label">Live classes</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value ${pending.length > 0 ? 'warn' : ''}">${pending.length}</div>
+      <div class="stat-value ok">${approvedEvents.length}</div>
+      <div class="stat-label">Live events</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value ${(pending.length + pendingEvents.length) > 0 ? 'warn' : ''}">${pending.length + pendingEvents.length}</div>
       <div class="stat-label">Pending review</div>
     </div>
   `
@@ -1085,13 +1127,30 @@ function renderDashboard() {
       }).join('')
     : '<p style="font-size:12px;color:var(--on-variant)">No upcoming classes yet.</p>'
 
-  document.getElementById('dash-pending').innerHTML = pending.length
-    ? pending.map(c => `
-        <div class="class-card" onclick="openClassPanel('${c.id}')" style="border-color:#ffcc80;background:#fff8f0">
+  const upcomingEvs = approvedEvents.filter(isEventUpcoming).slice(0, 5)
+  document.getElementById('dash-upcoming-events').innerHTML = upcomingEvs.length
+    ? upcomingEvs.map(ev => `<div class="class-card" onclick="openEventPanel('${ev.id}')">
+        <div class="class-card-dot" style="background:#e65100"></div>
+        <div class="class-card-info">
+          <h4>${esc(ev.name)}</h4>
+          <p>${formatEventDates(ev.event_dates)}${ev.venue_name ? ' · ' + esc(ev.venue_name) : ''}</p>
+        </div>
+        <span class="badge badge-ok">Live</span>
+      </div>`).join('')
+    : '<p style="font-size:12px;color:var(--on-variant)">No upcoming events yet.</p>'
+
+  const allPending = [
+    ...pending.map(c => ({ ...c, _type: 'class' })),
+    ...pendingEvents.map(e => ({ ...e, _type: 'event' })),
+  ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+  document.getElementById('dash-pending').innerHTML = allPending.length
+    ? allPending.map(item => `
+        <div class="class-card" onclick="open${item._type === 'event' ? 'Event' : 'Class'}Panel('${item.id}')" style="border-color:#ffcc80;background:#fff8f0">
           <div class="class-card-dot" style="background:var(--warn)"></div>
           <div class="class-card-info">
-            <h4>${esc(c.name)}</h4>
-            <p>Submitted ${new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>
+            <h4>${esc(item.name)}</h4>
+            <p>${item._type === 'event' ? '🎪 Event' : '📚 Class'} · Submitted ${new Date(item.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>
           </div>
           <span class="badge badge-warn">Pending</span>
         </div>`).join('')
@@ -1140,6 +1199,7 @@ function renderClassesTable() {
 
 // ── CLASS PANEL ───────────────────────────────────────────────────
 function openClassPanel(id) {
+  panelMode = 'class'
   panelItem = id ? myClasses.find(c => c.id === id) : null
   const isLive = panelItem?.status === 'approved'
   document.getElementById('panel-title').textContent = panelItem ? `Edit: ${panelItem.name}` : 'Submit new class'
@@ -1420,6 +1480,242 @@ async function deleteClass() {
   myClasses = myClasses.filter(c => c.id !== panelItem.id)
   renderClassesTable(); renderDashboard()
   closePanel(); toast('Deleted')
+}
+
+// ── EVENTS DATA ──────────────────────────────────────────────────
+async function loadEvents() {
+  const { data } = await db.from('events')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+  myEvents = data || []
+  updateEventsBadge()
+}
+
+function updateEventsBadge() {
+  const pending = myEvents.filter(e => e.status === 'pending').length
+  const cnt = document.getElementById('events-pending-cnt')
+  if (cnt) { cnt.textContent = pending; cnt.style.display = pending > 0 ? 'inline' : 'none' }
+}
+
+function isEventUpcoming(ev) {
+  if (!ev.event_dates?.length) return false
+  const today = new Date().toISOString().slice(0, 10)
+  return ev.event_dates.some(d => d >= today)
+}
+
+function formatEventDates(dates) {
+  if (!dates?.length) return '—'
+  const sorted = [...dates].sort()
+  if (sorted.length === 1) return new Date(sorted[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const first = new Date(sorted[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const last  = new Date(sorted[sorted.length - 1]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return sorted.length === 2 ? `${first} & ${last}` : `${first} (+${sorted.length - 1} more)`
+}
+
+// ── EVENTS TABLE ──────────────────────────────────────────────────
+function setEventsFilter(f) {
+  eventsFilter = f
+  document.querySelectorAll('[data-ef]').forEach(c => c.classList.toggle('active', c.dataset.ef === f))
+  renderEventsTable()
+}
+
+function renderEventsTable() {
+  let list = [...myEvents]
+  if (eventsFilter === 'upcoming') list = list.filter(e => e.status === 'approved' && isEventUpcoming(e))
+  else if (eventsFilter === 'past')     list = list.filter(e => e.status === 'approved' && !isEventUpcoming(e))
+  else if (eventsFilter === 'pending')  list = list.filter(e => e.status === 'pending')
+  else if (eventsFilter === 'rejected') list = list.filter(e => e.status === 'rejected')
+
+  const tbody = document.getElementById('events-tbody')
+  if (!tbody) return
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No events found</td></tr>'; return }
+  tbody.innerHTML = list.map(ev => {
+    const badge = ev.status === 'approved' ? 'badge-ok' : ev.status === 'pending' ? 'badge-warn' : 'badge-err'
+    const label = ev.status === 'approved' ? 'Live' : ev.status === 'pending' ? 'Pending' : 'Rejected'
+    const price = ev.price != null ? `£${ev.price}` : 'Free'
+    const canDelete = ev.status === 'pending' || ev.status === 'rejected'
+    return `<tr onclick="openEventPanel('${ev.id}')">
+      <td><div class="td-name">${esc(ev.name)}</div>
+          <div class="td-meta">${esc(ev.venue_name||'')}</div></td>
+      <td><span class="td-meta">${esc(ev.category||'—')}</span></td>
+      <td><div class="td-meta">${formatEventDates(ev.event_dates)}</div></td>
+      <td><div class="td-meta">${price}</div></td>
+      <td><span class="badge ${badge}">${label}</span></td>
+      <td><div class="actions-cell" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm" onclick="openEventPanel('${ev.id}')">Edit</button>
+        ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="confirmDeleteEvent(event,'${ev.id}')">Delete</button>` : ''}
+      </div></td>
+    </tr>`
+  }).join('')
+}
+
+// ── EVENT PANEL ───────────────────────────────────────────────────
+function openEventPanel(id) {
+  panelMode = 'event'
+  panelItem = id ? myEvents.find(e => e.id === id) : null
+  const isLive = panelItem?.status === 'approved'
+  document.getElementById('panel-title').textContent = panelItem ? `Edit: ${panelItem.name}` : 'Submit new event'
+  document.getElementById('panel-save-btn').textContent = isLive ? 'Save changes' : 'Submit for review'
+  document.getElementById('panel-delete-btn').style.display =
+    (panelItem?.status === 'pending' || panelItem?.status === 'rejected') ? 'inline-flex' : 'none'
+  document.getElementById('panel-body').innerHTML = buildEventForm(panelItem)
+  const overlay = document.getElementById('panel-overlay')
+  overlay.style.display = 'flex'
+  requestAnimationFrame(() => overlay.classList.add('open'))
+}
+
+function buildEventForm(ev) {
+  const v = ev || {}
+  const catChips = CATEGORIES.map(cat =>
+    `<span class="chip-opt ${v.category === cat ? 'active' : ''}" onclick="toggleChip(this,'ev-category','${cat}',true)">${cat}</span>`).join('')
+  const datesVal = (v.event_dates || []).join(', ')
+  return `
+    ${v.status === 'approved'
+      ? '<div class="info-box" style="margin-bottom:20px">This event is live. Changes are saved immediately.</div>'
+      : v.status === 'rejected'
+      ? '<div class="warn-box" style="margin-bottom:20px">This event was rejected. Edit and resubmit for another review.</div>'
+      : v.id
+      ? '<div class="warn-box" style="margin-bottom:20px">Awaiting admin approval. You can edit while pending.</div>'
+      : '<div class="info-box" style="margin-bottom:20px">Once submitted, an admin will review your event before it goes live. This usually takes 1–2 days.</div>'}
+
+    <input type="hidden" id="f-ev-id"       value="${v.id||''}">
+    <input type="hidden" id="f-ev-category"  value="${v.category||''}">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 40px;align-items:start">
+
+      <!-- LEFT -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">About</div>
+        <div class="field"><label>Event name *</label><input id="f-ev-name" value="${esc(v.name||'')}" placeholder="e.g. Summer Baby Festival"></div>
+        <div class="field"><label>Category</label><div class="chips-field">${catChips}</div></div>
+        <div class="field"><label>Description</label><textarea id="f-ev-description" placeholder="What can parents expect?" style="min-height:100px">${esc(v.description||'')}</textarea></div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 10px">Dates &amp; times</div>
+        <div class="field">
+          <label>Dates * <span style="font-weight:400;text-transform:none">(YYYY-MM-DD, comma-separated)</span></label>
+          <input id="f-ev-dates" value="${esc(datesVal)}" placeholder="2026-08-01, 2026-08-02">
+          <p class="field-hint">Enter one or more dates separated by commas.</p>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Start time</label><input type="time" id="f-ev-time_start" value="${v.time_start||''}"></div>
+          <div class="field"><label>End time</label><input type="time" id="f-ev-time_end" value="${v.time_end||''}"></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 10px">Ages &amp; price</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="field"><label>Min age (mo)</label><input type="number" id="f-ev-age_min_months" value="${v.age_min_months??''}" placeholder="0" min="0"></div>
+          <div class="field"><label>Max age (mo)</label><input type="number" id="f-ev-age_max_months" value="${v.age_max_months??''}" placeholder="60" min="0"></div>
+          <div class="field"><label>Price (£)</label><input type="number" id="f-ev-price" value="${v.price??''}" placeholder="free" step="0.01" min="0"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Location</div>
+        <div class="field"><label>Venue name *</label><input id="f-ev-venue_name" value="${esc(v.venue_name||'')}" placeholder="e.g. Cambridge Corn Exchange"></div>
+        <div class="field"><label>Street</label><input id="f-ev-street" value="${esc(v.street||'')}" placeholder="10 High Street"></div>
+        <div class="field-row">
+          <div class="field"><label>City</label><input id="f-ev-city" value="${esc(v.city||'')}" placeholder="Cambridge"></div>
+          <div class="field"><label>Postcode</label><input id="f-ev-postcode" value="${esc(v.postcode||'')}"></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 10px">Media &amp; links</div>
+        <div class="field"><label>Photo URL</label><input type="url" id="f-ev-photo_url" value="${esc(v.photo_url||'')}" placeholder="https://…"></div>
+        <div class="field"><label>Website</label><input type="url" id="f-ev-website" value="${esc(v.website||'')}" placeholder="https://…"></div>
+        <div class="field"><label>Your name</label><input id="f-ev-organiser" value="${esc(v.organiser || userProfile?.first_name || '')}" placeholder="Full name"></div>
+      </div>
+
+    </div>
+  `
+}
+
+async function saveEvent() {
+  const name  = document.getElementById('f-ev-name').value.trim()
+  const venue = document.getElementById('f-ev-venue_name').value.trim()
+  const datesRaw = document.getElementById('f-ev-dates').value
+  if (!name)  { toast('Event name is required'); return }
+  if (!venue) { toast('Venue name is required'); return }
+
+  const dates = datesRaw.split(',').map(d => d.trim()).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d))
+  if (!dates.length) { toast('Enter at least one date in YYYY-MM-DD format'); return }
+
+  const btn = document.getElementById('panel-save-btn')
+  btn.textContent = 'Saving…'; btn.disabled = true
+
+  try {
+    const id = document.getElementById('f-ev-id').value
+    const existing = id ? myEvents.find(e => e.id === id) : null
+    const street   = document.getElementById('f-ev-street').value.trim()
+    const city     = document.getElementById('f-ev-city').value.trim()
+    const postcode = document.getElementById('f-ev-postcode').value.trim().toUpperCase()
+
+    let lat = null, lng = null, shire_id = null
+    const hasAddress = [street, city, postcode].some(Boolean)
+    if (hasAddress) {
+      btn.textContent = 'Finding location…'
+      const geo = await autoGeocode(street, city, postcode)
+      if (geo) { lat = geo.lat; lng = geo.lng; shire_id = geo.shire_id }
+      btn.textContent = 'Saving…'
+    }
+
+    const payload = {
+      name,
+      description:    document.getElementById('f-ev-description').value.trim() || null,
+      category:       document.getElementById('f-ev-category').value || null,
+      event_dates:    dates,
+      time_start:     document.getElementById('f-ev-time_start').value || null,
+      time_end:       document.getElementById('f-ev-time_end').value || null,
+      age_min_months: numOrNull('f-ev-age_min_months'),
+      age_max_months: numOrNull('f-ev-age_max_months'),
+      price:          numOrNull('f-ev-price'),
+      venue_name:     venue,
+      street:         street || null,
+      city:           city || null,
+      postcode:       postcode || null,
+      address:        [street, city, postcode].filter(Boolean).join(', ') || null,
+      lat, lng, shire_id,
+      photo_url:      document.getElementById('f-ev-photo_url').value.trim() || null,
+      website:        document.getElementById('f-ev-website').value.trim() || null,
+      organiser:      document.getElementById('f-ev-organiser').value.trim() || null,
+      user_id:        currentUser.id,
+      status:         existing?.status === 'approved' ? 'approved' : 'pending',
+    }
+    if (id) payload.id = id
+
+    const { data, error } = await db.from('events').upsert(payload).select().single()
+    if (error) { toast('Error: ' + error.message); return }
+    myEvents = id ? myEvents.map(e => e.id === id ? data : e) : [data, ...myEvents]
+    updateEventsBadge()
+    renderDashboard()
+    renderEventsTable()
+    closePanel()
+    toast(existing?.status === 'approved' ? 'Saved ✓' : 'Submitted for review ✓')
+  } catch (e) {
+    toast('Save failed: ' + (e?.message ?? 'please try again'))
+  } finally {
+    resetBtn()
+  }
+}
+
+async function deleteEvent() {
+  if (!panelItem || !confirm(`Delete "${panelItem.name}"?`)) return
+  await db.from('events').delete().eq('id', panelItem.id).eq('user_id', currentUser.id)
+  myEvents = myEvents.filter(e => e.id !== panelItem.id)
+  updateEventsBadge()
+  renderEventsTable(); renderDashboard()
+  closePanel(); toast('Deleted')
+}
+
+async function confirmDeleteEvent(e, id) {
+  e.stopPropagation()
+  const ev = myEvents.find(x => x.id === id)
+  if (!ev || !confirm(`Delete "${ev.name}"?`)) return
+  await db.from('events').delete().eq('id', id).eq('user_id', currentUser.id)
+  myEvents = myEvents.filter(x => x.id !== id)
+  updateEventsBadge()
+  renderEventsTable(); renderDashboard()
+  toast('Deleted')
 }
 
 // ── MESSAGES (uses same conversations/messages tables as the app) ──
@@ -1807,12 +2103,14 @@ function closePanel() {
   const overlay = document.getElementById('panel-overlay')
   overlay.classList.remove('open')
   setTimeout(() => {
-    overlay.style.display = 'none'; panelItem = null
+    overlay.style.display = 'none'; panelItem = null; panelMode = 'class'
     const saveBtn = document.getElementById('panel-save-btn')
     saveBtn.style.display = ''; saveBtn.textContent = 'Submit for review'; saveBtn.disabled = false
     document.getElementById('panel-delete-btn').style.display = 'none'
   }, 260)
 }
+function panelSave() { panelMode === 'event' ? saveEvent() : saveClass() }
+function panelDelete() { panelMode === 'event' ? deleteEvent() : deleteClass() }
 function handleOverlayClick(e) { if (e.target === e.currentTarget) closePanel() }
 
 function toggleChip(el, field, value, single) {
