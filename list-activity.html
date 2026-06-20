@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>List Your Activity — My Little Circle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:       #00a99d;
+      --teal-dark:  #006a62;
+      --lavender:   #9395d3;
+      --mint:       #e0f2f1;
+      --on-surface:         #1a1c1e;
+      --on-surface-variant: #3c4947;
+      --surface:            #f9f9fc;
+      --surface-low:        #f3f3f6;
+      --surface-highest:    #e2e2e5;
+      --outline-variant:    #bbc9c6;
+      --inverse-surface:    #2f3133;
+      --inverse-on-surface: #f0f0f3;
+      --r-md: 0.75rem; --r-lg: 1rem; --r-xl: 1.5rem; --r-full: 9999px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Manrope', sans-serif; color: var(--on-surface); background: var(--surface); overflow-x: hidden; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: 64px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 64px;
+      background: rgba(249,249,252,0.88); backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--outline-variant);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { width: 34px; height: 34px; border-radius: var(--r-md); }
+    .nav-logo span { font-weight: 800; font-size: 17px; color: var(--on-surface); letter-spacing: -0.01em; }
+    .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-link { color: var(--on-surface-variant); text-decoration: none; font-size: 14px; font-weight: 600; transition: color 0.2s; }
+    .nav-link:hover { color: var(--teal-dark); }
+    .nav-cta-btn {
+      background: var(--teal-dark); color: #fff;
+      padding: 0.5rem 1.25rem; border-radius: var(--r-full);
+      font-size: 14px; font-weight: 700; text-decoration: none;
+      box-shadow: 0 2px 12px rgba(0,106,98,0.25);
+      transition: background 0.2s, transform 0.15s;
+    }
+    .nav-cta-btn:hover { background: var(--teal); transform: scale(0.97); }
+    @media (max-width: 768px) { nav { padding: 0 20px; } .nav-right .nav-link { display: none; } }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh; padding-top: 64px;
+      display: flex; align-items: center; justify-content: center;
+      padding-left: 24px; padding-right: 24px;
+      position: relative; overflow: hidden;
+      background: radial-gradient(ellipse at 20% 30%, rgba(0,169,157,0.1) 0%, rgba(147,149,211,0.08) 50%, transparent 80%), var(--surface);
+    }
+    .hero::before {
+      content: ''; position: absolute; border-radius: 50%; pointer-events: none; filter: blur(80px);
+      width: 520px; height: 520px;
+      background: linear-gradient(135deg, var(--teal), var(--lavender));
+      top: -140px; left: -140px; opacity: 0.1;
+    }
+    .hero::after {
+      content: ''; position: absolute; border-radius: 50%; pointer-events: none; filter: blur(80px);
+      width: 360px; height: 360px;
+      background: linear-gradient(135deg, var(--lavender), var(--mint));
+      bottom: -80px; right: -80px; opacity: 0.14;
+    }
+    .hero-inner {
+      position: relative; z-index: 2;
+      max-width: 760px; width: 100%; margin: 0 auto;
+      text-align: center;
+      padding: 80px 0 60px;
+    }
+    .community-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,169,157,0.1); color: var(--teal-dark);
+      border: 1px solid rgba(0,169,157,0.25);
+      font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 0.4rem 1rem; border-radius: var(--r-full);
+      margin-bottom: 1.5rem;
+    }
+    .community-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); }
+    .hero-h1 {
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 800; line-height: 1.1; letter-spacing: -0.03em;
+      color: var(--on-surface); margin-bottom: 1.25rem;
+    }
+    .hero-h1 .accent {
+      background: linear-gradient(120deg, var(--teal-dark), var(--teal), var(--lavender));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-sub {
+      font-size: 1.15rem; line-height: 1.7; color: var(--on-surface-variant);
+      max-width: 560px; margin: 0 auto 2.25rem;
+    }
+    .hero-ctas { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--teal-dark); color: #fff;
+      font-weight: 700; font-size: 1rem; padding: 0.9rem 2rem;
+      border-radius: var(--r-full); text-decoration: none;
+      box-shadow: 0 6px 20px rgba(0,106,98,0.35);
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { background: var(--teal); transform: scale(0.98); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--teal-dark);
+      font-weight: 700; font-size: 1rem; padding: 0.9rem 2rem;
+      border-radius: var(--r-full); text-decoration: none;
+      border: 2px solid var(--teal-dark);
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-ghost:hover { background: var(--mint); }
+
+    /* ── TRUST BAR ── */
+    .trust-bar {
+      background: var(--inverse-surface);
+      padding: 28px 24px;
+    }
+    .trust-inner {
+      max-width: 900px; margin: 0 auto;
+      display: flex; justify-content: center; align-items: center;
+      gap: 48px; flex-wrap: wrap;
+    }
+    .trust-item { text-align: center; }
+    .trust-num { font-size: 1.9rem; font-weight: 800; color: #59dacd; line-height: 1; margin-bottom: 4px; }
+    .trust-label { font-size: 12px; font-weight: 600; color: rgba(240,240,243,0.55); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ── WHY US ── */
+    .why-section { padding: 80px 24px; background: #fff; }
+    .why-inner { max-width: 1100px; margin: 0 auto; }
+    .section-header { text-align: center; margin-bottom: 56px; }
+    .section-header h2 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .section-header p { color: var(--on-surface-variant); font-size: 1.05rem; }
+
+    .why-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+    }
+    @media (max-width: 768px) { .why-grid { grid-template-columns: 1fr; } }
+
+    .why-card {
+      background: var(--surface); border-radius: var(--r-xl);
+      padding: 2rem 1.75rem; border: 1px solid var(--surface-highest);
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+    .why-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 16px 40px rgba(0,106,98,0.1);
+      border-color: rgba(0,169,157,0.3);
+    }
+    .why-icon {
+      width: 52px; height: 52px; border-radius: var(--r-lg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin-bottom: 1rem;
+    }
+    .why-card h3 { font-size: 1.05rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--on-surface); }
+    .why-card p { font-size: 0.9rem; line-height: 1.65; color: var(--on-surface-variant); }
+
+    /* ── COMMUNITY SECTION ── */
+    .community-section {
+      padding: 80px 24px;
+      background: linear-gradient(135deg, #0d1f1e 0%, #1a2b35 50%, #1a1a2e 100%);
+      position: relative; overflow: hidden;
+    }
+    .community-section::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 70% 30%, rgba(0,169,157,0.15) 0%, transparent 60%);
+    }
+    .community-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+      position: relative; z-index: 1;
+    }
+    @media (max-width: 768px) { .community-inner { grid-template-columns: 1fr; gap: 40px; } }
+    .community-chip-dark {
+      display: inline-block; background: rgba(89,218,205,0.12);
+      color: #59dacd; border: 1px solid rgba(89,218,205,0.2);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 0.3rem 0.85rem; border-radius: var(--r-full); margin-bottom: 1rem;
+    }
+    .community-h2 {
+      font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;
+      color: var(--inverse-on-surface); line-height: 1.2; margin-bottom: 1rem;
+    }
+    .community-body { font-size: 1rem; line-height: 1.7; color: rgba(240,240,243,0.65); margin-bottom: 1.75rem; }
+    .community-points { list-style: none; display: flex; flex-direction: column; gap: 0.85rem; }
+    .community-points li {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 0.95rem; color: rgba(240,240,243,0.85); font-weight: 600;
+    }
+    .check {
+      width: 22px; height: 22px; border-radius: var(--r-full); flex-shrink: 0; margin-top: 1px;
+      background: var(--teal); display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: #fff; font-weight: 800;
+    }
+
+    /* quote card */
+    .quote-card {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--r-xl); padding: 2rem; backdrop-filter: blur(12px);
+    }
+    .quote-text {
+      font-size: 1.15rem; font-weight: 700; line-height: 1.55;
+      color: var(--inverse-on-surface); margin-bottom: 1.25rem; font-style: italic;
+    }
+    .quote-text::before { content: '"'; }
+    .quote-text::after  { content: '"'; }
+    .quote-author { display: flex; align-items: center; gap: 12px; }
+    .quote-avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--teal), var(--lavender));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 800; color: #fff;
+    }
+    .quote-name { font-size: 0.9rem; font-weight: 700; color: var(--inverse-on-surface); }
+    .quote-role { font-size: 0.8rem; color: rgba(240,240,243,0.5); margin-top: 2px; }
+    .quote-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,255,255,0.08); border-radius: var(--r-lg); overflow: hidden; margin-top: 1.5rem; }
+    .quote-stat { background: rgba(255,255,255,0.04); padding: 1rem; text-align: center; }
+    .quote-stat strong { display: block; font-size: 1.5rem; font-weight: 800; color: #59dacd; }
+    .quote-stat span { font-size: 11px; color: rgba(240,240,243,0.45); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+
+    /* ── HOW IT WORKS ── */
+    .steps-section { padding: 80px 24px; background: var(--surface-low); }
+    .steps-inner { max-width: 900px; margin: 0 auto; }
+    .steps-list { display: flex; flex-direction: column; gap: 0; margin-top: 48px; }
+    .step-row {
+      display: flex; align-items: flex-start; gap: 24px;
+      padding: 32px 0; border-bottom: 1px solid var(--surface-highest);
+    }
+    .step-row:last-child { border-bottom: none; }
+    .step-num-big {
+      width: 56px; height: 56px; border-radius: var(--r-full); flex-shrink: 0;
+      background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+      color: #fff; font-weight: 800; font-size: 1.2rem;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 16px rgba(0,106,98,0.3);
+    }
+    .step-content h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.4rem; }
+    .step-content p { font-size: 0.95rem; color: var(--on-surface-variant); line-height: 1.6; }
+    .step-tag {
+      display: inline-block; margin-top: 8px;
+      background: var(--mint); color: var(--teal-dark);
+      font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: var(--r-full);
+    }
+
+    /* ── FINAL CTA ── */
+    .final-cta {
+      padding: 88px 24px;
+      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal) 55%, var(--lavender) 100%);
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .final-cta::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.08) 0%, transparent 60%);
+    }
+    .final-cta h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800;
+      letter-spacing: -0.02em; color: #fff; margin-bottom: 0.75rem;
+      position: relative;
+    }
+    .final-cta p { color: rgba(255,255,255,0.78); font-size: 1.1rem; margin-bottom: 2rem; position: relative; }
+    .final-cta-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; position: relative; }
+    .btn-white {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #fff; color: var(--teal-dark);
+      font-weight: 800; font-size: 1rem; padding: 0.9rem 2rem;
+      border-radius: var(--r-full); text-decoration: none;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-white:hover { transform: scale(0.98); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+    .btn-white-ghost {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: #fff;
+      font-weight: 700; font-size: 1rem; padding: 0.9rem 2rem;
+      border-radius: var(--r-full); text-decoration: none;
+      border: 2px solid rgba(255,255,255,0.5);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-white-ghost:hover { border-color: #fff; background: rgba(255,255,255,0.08); }
+
+    /* ── FOOTER ── */
+    footer { background: var(--inverse-surface); padding: 40px 24px 28px; text-align: center; }
+    footer a { color: rgba(240,240,243,0.55); text-decoration: none; font-size: 0.875rem; font-weight: 600; }
+    footer a:hover { color: #59dacd; }
+    .footer-links { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .footer-copy { font-size: 0.8rem; color: rgba(240,240,243,0.3); }
+
+    /* ── REVEAL ── */
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease, transform 0.55s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <img src="assets/Logo 1024.png" alt="My Little Circle">
+    <span>My Little Circle</span>
+  </a>
+  <div class="nav-right">
+    <a href="/" class="nav-link">For families</a>
+    <a href="/organiser?register=1" class="nav-cta-btn">Create your account →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="community-chip reveal">
+      <span class="dot"></span>
+      Built by community, for community
+    </div>
+    <h1 class="hero-h1 reveal" style="transition-delay:0.06s">
+      Reach the families<br>
+      <span class="accent">already looking for you</span>
+    </h1>
+    <p class="hero-sub reveal" style="transition-delay:0.12s">
+      List your classes, groups, and activities on My Little Circle — the local parenting app built by parents, trusted by parents. No algorithms. No gatekeepers. Just real families in your area.
+    </p>
+    <div class="hero-ctas reveal" style="transition-delay:0.18s">
+      <a href="/organiser?register=1" class="btn-primary">List your activity →</a>
+      <a href="#how-it-works" class="btn-ghost">See how it works</a>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <div class="trust-item">
+      <div class="trust-num">Open</div>
+      <div class="trust-label">Anyone can list</div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-num">Local</div>
+      <div class="trust-label">Real parents, real area</div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-num">Simple</div>
+      <div class="trust-label">No tech knowledge needed</div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-num">Direct</div>
+      <div class="trust-label">Message parents in the app</div>
+    </div>
+  </div>
+</div>
+
+<!-- WHY US -->
+<section class="why-section">
+  <div class="why-inner">
+    <div class="section-header reveal">
+      <h2>Why organisers choose My Little Circle</h2>
+      <p>Not a directory. Not a marketplace. A community.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card reveal">
+        <div class="why-icon" style="background: var(--mint);">🎯</div>
+        <h3>Parents who are actively searching</h3>
+        <p>Every parent on MLC opened the app because they're looking for something. Your listing lands in front of the right people — filtered by age, location, and category.</p>
+      </div>
+      <div class="why-card reveal" style="transition-delay:0.08s">
+        <div class="why-icon" style="background: rgba(147,149,211,0.15);">🤝</div>
+        <h3>Built by community, for community</h3>
+        <p>We're not a corporation. MLC was built by parents who wanted something better. When you list with us, you're joining a grassroots network — not paying to play on a platform that doesn't care.</p>
+      </div>
+      <div class="why-card reveal" style="transition-delay:0.16s">
+        <div class="why-icon" style="background: #fce7f3;">📋</div>
+        <h3>Manage bookings in one place</h3>
+        <p>Track who's coming, send group messages to attendees, and manage your class from your organiser dashboard — without juggling spreadsheets or WhatsApp groups.</p>
+      </div>
+      <div class="why-card reveal" style="transition-delay:0.08s">
+        <div class="why-icon" style="background: #ede9fe;">⭐</div>
+        <h3>Parent reviews build trust</h3>
+        <p>Real ratings from real parents attending your sessions. Good word-of-mouth, captured and displayed on your listing automatically.</p>
+      </div>
+      <div class="why-card reveal" style="transition-delay:0.16s">
+        <div class="why-icon" style="background: #fff3e0;">📍</div>
+        <h3>Discoverable on the map</h3>
+        <p>Parents browse the parks map and see your venue pinned nearby. You're not buried in a search result — you're visible at the moment they're already thinking about going out.</p>
+      </div>
+      <div class="why-card reveal" style="transition-delay:0.24s">
+        <div class="why-icon" style="background: #e8f5e9;">💬</div>
+        <h3>Direct messaging with parents</h3>
+        <p>Parents can message you directly through the app with questions before booking. No middleman, no ticket form — just a real conversation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMUNITY SECTION -->
+<section class="community-section">
+  <div class="community-inner">
+    <div class="reveal">
+      <span class="community-chip-dark">Our mission</span>
+      <h2 class="community-h2">A village, rebuilt for modern parents</h2>
+      <p class="community-body">
+        Parenthood used to come with a built-in community — neighbours, church halls, mother-and-baby groups. That network has frayed. My Little Circle exists to rebuild it, street by street, activity by activity.
+      </p>
+      <p class="community-body">
+        When you list your class on MLC, you're not just filling spots. You're helping to create the kind of local support network that parents desperately need — and that only works when people like you show up.
+      </p>
+      <ul class="community-points">
+        <li><span class="check">✓</span>Your activity becomes part of the local family network</li>
+        <li><span class="check">✓</span>Parents discover you through word of mouth and reviews</li>
+        <li><span class="check">✓</span>You help build something that genuinely matters</li>
+        <li><span class="check">✓</span>Community first — no gatekeepers, no barriers</li>
+      </ul>
+    </div>
+    <div class="reveal" style="transition-delay:0.15s">
+      <div class="quote-card">
+        <p class="quote-text">
+          Listing on My Little Circle felt different. It's not just another booking site — parents here are genuinely invested in finding the right thing for their child. We filled our waiting list within a week.
+        </p>
+        <div class="quote-author">
+          <div class="quote-avatar">S</div>
+          <div>
+            <div class="quote-name">Sarah M.</div>
+            <div class="quote-role">Baby Sensory organiser, Cambridge</div>
+          </div>
+        </div>
+        <div class="quote-stats">
+          <div class="quote-stat">
+            <strong>12</strong>
+            <span>spots filled</span>
+          </div>
+          <div class="quote-stat">
+            <strong>7 days</strong>
+            <span>to full</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="steps-section" id="how-it-works">
+  <div class="steps-inner">
+    <div class="section-header reveal">
+      <h2>From sign-up to live in minutes</h2>
+      <p>No technical knowledge needed. No setup fees. Just your class details.</p>
+    </div>
+    <div class="steps-list">
+      <div class="step-row reveal">
+        <div class="step-num-big">1</div>
+        <div class="step-content">
+          <h3>Create your organiser account</h3>
+          <p>Sign up with Google or email. Takes under a minute. Your account is your dashboard for everything — classes, bookings, messages.</p>
+          <span class="step-tag">Takes under a minute</span>
+        </div>
+      </div>
+      <div class="step-row reveal" style="transition-delay:0.08s">
+        <div class="step-num-big">2</div>
+        <div class="step-content">
+          <h3>Submit your class listing</h3>
+          <p>Add your class name, description, schedule, venue, age range, and price. Upload a photo. Set your booking type — drop-in or bookings required.</p>
+          <span class="step-tag">Takes ~5 minutes</span>
+        </div>
+      </div>
+      <div class="step-row reveal" style="transition-delay:0.16s">
+        <div class="step-num-big">3</div>
+        <div class="step-content">
+          <h3>We review and publish</h3>
+          <p>Our team reviews every listing to keep the directory trustworthy for parents. We'll let you know as soon as you're live.</p>
+          <span class="step-tag">We'll notify you</span>
+        </div>
+      </div>
+      <div class="step-row reveal" style="transition-delay:0.24s">
+        <div class="step-num-big">4</div>
+        <div class="step-content">
+          <h3>Parents find you, book, and review</h3>
+          <p>Your class appears on the map and in search results. Parents can book directly, message you with questions, and leave reviews after attending.</p>
+          <span class="step-tag">You're live 🎉</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <h2>Ready to reach local families?</h2>
+  <p>Join the community. List your activity and reach local families today.</p>
+  <div class="final-cta-btns">
+    <a href="/organiser?register=1" class="btn-white">Create your account →</a>
+    <a href="mailto:hello@mylittlecircle.co.uk" class="btn-white-ghost">Talk to us first</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="/">For families</a>
+    <a href="/privacy-policy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="mailto:hello@mylittlecircle.co.uk">Contact</a>
+  </div>
+  <p class="footer-copy">© 2026 KPL Ltd, trading as My Little Circle. Registered in England and Wales.</p>
+</footer>
+
+<script>
+  const io = new IntersectionObserver(
+    entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target) } }),
+    { threshold: 0.1 }
+  )
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el))
+</script>
+</body>
+</html>

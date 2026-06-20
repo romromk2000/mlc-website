@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>if (window.location.hash.includes('access_token') || window.location.search.includes('error_code')) { window.location.replace('/admin' + window.location.hash + window.location.search) }</script>
+  <title>My Little Circle — Everything Around Children. All in One Place.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:       #00a99d;
+      --teal-dark:  #006a62;
+      --lavender:   #9395d3;
+      --mint:       #e0f2f1;
+      --on-surface:         #1a1c1e;
+      --on-surface-variant: #3c4947;
+      --surface:            #f9f9fc;
+      --surface-low:        #f3f3f6;
+      --surface-highest:    #e2e2e5;
+      --outline-variant:    #bbc9c6;
+      --inverse-surface:    #2f3133;
+      --inverse-on-surface: #f0f0f3;
+      --white: #ffffff;
+      --r-md:   0.75rem;
+      --r-lg:   1rem;
+      --r-xl:   1.5rem;
+      --r-full: 9999px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Manrope', sans-serif;
+      color: var(--on-surface);
+      background: var(--surface);
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 64px;
+      background: rgba(249,249,252,0.8);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--outline-variant);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px; text-decoration: none;
+    }
+    .nav-logo img { width: 34px; height: 34px; border-radius: var(--r-md); }
+    .nav-logo span { font-weight: 800; font-size: 17px; color: var(--on-surface); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2rem; list-style: none; }
+    .nav-links a { color: var(--on-surface-variant); text-decoration: none; font-size: 14px; font-weight: 600; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--teal-dark); }
+    .nav-cta {
+      background: var(--teal-dark); color: #fff !important;
+      padding: 0.5rem 1.25rem; border-radius: var(--r-full);
+      box-shadow: 0 2px 12px rgba(0,106,98,0.25);
+      transition: background 0.2s !important;
+    }
+    .nav-cta:hover { background: var(--teal) !important; }
+    @media (max-width: 768px) { nav { padding: 0 20px; } .nav-links { display: none; } }
+
+    /* ── HERO ───────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      padding-top: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-left: 24px; padding-right: 24px;
+      position: relative;
+      overflow: hidden;
+      /* Vibrant Calm radial tint — mirrors the original hero-bg feel */
+      background: radial-gradient(ellipse at 80% 20%, rgba(0,169,157,0.08) 0%, rgba(147,149,211,0.07) 50%, transparent 80%), var(--surface);
+    }
+
+    /* subtle blobs */
+    .hero::before, .hero::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(80px);
+    }
+    .hero::before {
+      width: 500px; height: 500px;
+      background: linear-gradient(135deg, var(--teal), var(--lavender));
+      top: -120px; right: -120px; opacity: 0.12;
+    }
+    .hero::after {
+      width: 340px; height: 340px;
+      background: linear-gradient(135deg, var(--lavender), var(--mint));
+      bottom: -80px; left: -80px; opacity: 0.16;
+    }
+
+    .hero-inner {
+      position: relative; z-index: 2;
+      max-width: 1280px; width: 100%; margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+      padding: 80px 0;
+    }
+    @media (max-width: 900px) {
+      .hero-inner { grid-template-columns: 1fr; text-align: center; padding: 48px 0; gap: 2.5rem; }
+    }
+
+    /* logo row — original had logo + title inline at top of left col */
+    .hero-logo-row {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 1.5rem;
+    }
+    @media (max-width: 900px) { .hero-logo-row { justify-content: center; } }
+    .hero-logo-row img { width: 56px; height: 56px; border-radius: var(--r-md); }
+    .hero-logo-row h1 { font-size: 2.2rem; font-weight: 800; color: var(--on-surface); letter-spacing: -0.02em; }
+
+    .hero-h2 {
+      font-size: clamp(1.9rem, 3.8vw, 2.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--on-surface);
+      margin-bottom: 1rem;
+    }
+    .hero-h2 .accent {
+      background: linear-gradient(120deg, var(--teal-dark), var(--teal), var(--lavender));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-desc {
+      font-size: 1.1rem; line-height: 1.7;
+      color: var(--on-surface-variant);
+      max-width: 440px;
+      margin-bottom: 1.75rem;
+    }
+    @media (max-width: 900px) { .hero-desc { margin-left: auto; margin-right: auto; } }
+
+    /* feature bullets — original 4-item list with coloured icon circles */
+    .hero-bullets { list-style: none; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    @media (max-width: 900px) { .hero-bullets { align-items: center; } }
+    .hero-bullet {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 1rem; font-weight: 600; color: var(--on-surface);
+    }
+    .bullet-icon {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .bullet-icon svg { width: 18px; height: 18px; }
+
+    /* app badges row */
+    .badge-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    @media (max-width: 900px) { .badge-row { justify-content: center; } }
+    .badge-row a { transition: opacity 0.2s, transform 0.15s; }
+    .badge-row a:hover { opacity: 0.82; transform: scale(0.97); }
+    .badge-row img { height: 58px; width: auto; }
+
+    /* phone mockups — original two side-by-side */
+    .hero-phones {
+      display: flex; gap: 1rem;
+      justify-content: center; align-items: flex-end;
+    }
+    .phone-mockup {
+      background: #111;
+      border-radius: 2.8rem;
+      padding: 0.45rem;
+      box-shadow: 0 28px 56px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05);
+      width: 100%; max-width: 240px;
+      transition: transform 0.3s ease;
+    }
+    .phone-mockup:first-child { transform: translateY(20px); }
+    .phone-mockup:hover { transform: translateY(-4px) !important; }
+    .phone-mockup img { width: 100%; border-radius: 2.4rem; display: block; }
+
+    /* ── TAGLINE SECTION — preserved from original ──────── */
+    .tagline-section {
+      padding: 1.5rem 24px;
+      background: var(--white);
+      text-align: center;
+      border-top: 1px solid var(--surface-highest);
+      border-bottom: 1px solid var(--surface-highest);
+    }
+    .tagline-img {
+      background: url('assets/MLC4_tagline.png') no-repeat center;
+      background-size: contain;
+      height: 30px;
+      width: 100%;
+      margin: 0 auto 0.4rem;
+      max-width: 600px;
+    }
+    .tagline-sub {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--on-surface-variant);
+    }
+
+    /* ── SCREENSHOTS — 4 phones side by side ─ */
+    .screenshots-section {
+      padding: 72px 24px 80px;
+      background: var(--surface-low);
+      overflow: hidden;
+    }
+    .screenshots-inner { max-width: 1280px; margin: 0 auto; }
+    .screenshots-title { text-align: center; margin-bottom: 52px; }
+    .screenshots-title h2 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 0.4rem; }
+    .screenshots-title p { color: var(--on-surface-variant); font-size: 1rem; }
+
+    .phones-row {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 20px;
+      flex-wrap: nowrap;
+    }
+    .phone-shot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      max-width: 220px;
+    }
+    .phone-shot:nth-child(1) { transform: translateY(24px); }
+    .phone-shot:nth-child(2) { transform: translateY(0px); }
+    .phone-shot:nth-child(3) { transform: translateY(16px); }
+    .phone-shot:nth-child(4) { transform: translateY(8px); }
+    .phone-shot-frame {
+      background: #111;
+      border-radius: 2.6rem;
+      padding: 0.4rem;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.06);
+      width: 100%;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .phone-shot-frame:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 36px 64px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.08);
+    }
+    .phone-shot-frame img { width: 100%; border-radius: 2.2rem; display: block; }
+    .phone-shot-label {
+      font-size: 12px; font-weight: 700;
+      color: var(--on-surface-variant);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    @media (max-width: 768px) {
+      .phones-row { gap: 12px; }
+      .phone-shot:nth-child(1),
+      .phone-shot:nth-child(2),
+      .phone-shot:nth-child(3),
+      .phone-shot:nth-child(4) { transform: none; }
+    }
+    @media (max-width: 480px) {
+      .phones-row { flex-wrap: wrap; }
+      .phone-shot { max-width: 45%; }
+    }
+
+    /* ── FEATURES SECTION ───────────────────────────────── */
+    .features-section { padding: 56px 24px; background: var(--white); }
+    .features-inner { max-width: 1280px; margin: 0 auto; }
+    .features-title { text-align: center; margin-bottom: 2.5rem; }
+    .features-title h2 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 0.4rem; }
+    .features-title p { color: var(--on-surface-variant); font-size: 1rem; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+    }
+    @media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .features-grid { grid-template-columns: 1fr; } }
+
+    .feat-card {
+      background: var(--white);
+      border: 1px solid var(--surface-highest);
+      border-radius: var(--r-xl);
+      padding: 1.75rem 1.25rem;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(0,106,98,0.05);
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .feat-card:hover { transform: translateY(-6px); box-shadow: 0 16px 32px rgba(0,106,98,0.1); }
+    .feat-icon {
+      width: 60px; height: 60px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem; font-size: 1.6rem;
+    }
+    .feat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .feat-card p { font-size: 0.875rem; color: var(--on-surface-variant); line-height: 1.5; }
+
+    /* ── HOW IT WORKS ───────────────────────────────────── */
+    .how-section { padding: 56px 24px; background: var(--surface-low); }
+    .how-inner { max-width: 1280px; margin: 0 auto; }
+    .how-header { text-align: center; margin-bottom: 2.5rem; }
+    .how-header h2 { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 0.4rem; }
+    .how-header p { color: var(--on-surface-variant); font-size: 1rem; }
+
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+    }
+    @media (max-width: 900px) { .how-steps { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .how-steps { grid-template-columns: 1fr; } }
+
+    .how-step {
+      background: var(--white);
+      border: 1px solid var(--surface-highest);
+      border-radius: var(--r-xl);
+      padding: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,106,98,0.04);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .how-step:hover { border-color: rgba(0,169,157,0.4); box-shadow: 0 6px 24px rgba(0,106,98,0.1); }
+    .step-num {
+      width: 40px; height: 40px; border-radius: var(--r-full);
+      background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+      color: #fff; font-weight: 800; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(0,106,98,0.3);
+    }
+    .how-step h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .how-step p { font-size: 0.85rem; color: var(--on-surface-variant); line-height: 1.55; }
+
+    /* ── ORGANISERS ─────────────────────────────────────── */
+    .org-section { padding: 56px 24px; background: var(--inverse-surface); }
+    .org-inner {
+      max-width: 1280px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 4rem; align-items: center;
+    }
+    @media (max-width: 768px) { .org-inner { grid-template-columns: 1fr; gap: 2.5rem; } }
+
+    .chip {
+      display: inline-block;
+      background: rgba(0,169,157,0.15);
+      color: #59dacd;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 0.3rem 0.85rem; border-radius: var(--r-full);
+      border: 1px solid rgba(89,218,205,0.25);
+      margin-bottom: 0.75rem;
+    }
+    .org-h2 {
+      font-size: 1.8rem; font-weight: 800; letter-spacing: -0.01em;
+      color: var(--inverse-on-surface); line-height: 1.2; margin-bottom: 0.75rem;
+    }
+    .org-body { font-size: 1rem; line-height: 1.65; color: rgba(240,240,243,0.65); margin-bottom: 1.5rem; }
+    .org-list { list-style: none; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .org-list li {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.95rem; font-weight: 600; color: rgba(240,240,243,0.8);
+    }
+    .org-list li::before {
+      content: '✓'; width: 22px; height: 22px; border-radius: var(--r-full);
+      background: var(--teal); color: #fff; font-size: 11px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .btn-teal {
+      display: inline-block; background: var(--teal); color: #fff;
+      font-weight: 700; font-size: 0.95rem; padding: 0.85rem 2rem;
+      border-radius: var(--r-full); text-decoration: none;
+      box-shadow: 0 4px 16px rgba(0,169,157,0.35);
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-teal:hover { background: #00c4b7; transform: scale(0.98); }
+
+    .glass-card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--r-xl); padding: 1.5rem;
+      backdrop-filter: blur(16px);
+    }
+    .glass-row {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 0.85rem 0; border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .glass-row:last-child { border-bottom: none; }
+    .glass-icon {
+      width: 44px; height: 44px; border-radius: var(--r-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; flex-shrink: 0;
+    }
+    .glass-row strong { display: block; color: var(--inverse-on-surface); font-weight: 700; font-size: 0.9rem; }
+    .glass-row span { font-size: 0.8rem; color: rgba(240,240,243,0.5); }
+
+    /* ── CTA ────────────────────────────────────────────── */
+    .cta-section {
+      padding: 72px 24px;
+      background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal) 50%, var(--lavender) 100%);
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-section::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.07) 0%, transparent 60%);
+    }
+    .cta-section h2 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800;
+      letter-spacing: -0.02em; color: #fff; margin-bottom: 0.6rem; position: relative;
+    }
+    .cta-section p { color: rgba(255,255,255,0.78); font-size: 1.1rem; margin-bottom: 2rem; position: relative; }
+    .cta-badges { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; position: relative; }
+    .cta-badges a { transition: opacity 0.2s, transform 0.15s; }
+    .cta-badges a:hover { opacity: 0.85; transform: scale(0.97); }
+    .cta-badges img { height: 54px; width: auto; }
+
+    /* ── FOOTER ─────────────────────────────────────────── */
+    footer { background: var(--inverse-surface); padding: 56px 24px 32px; }
+    .footer-grid {
+      max-width: 1280px; margin: 0 auto;
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem;
+    }
+    @media (max-width: 768px) { .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; } }
+    @media (max-width: 480px) { .footer-grid { grid-template-columns: 1fr; } }
+
+    .footer-brand p { font-size: 0.85rem; color: rgba(240,240,243,0.5); line-height: 1.6; margin-top: 0.75rem; max-width: 220px; }
+    .footer-col h4 {
+      font-weight: 700; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(240,240,243,0.4); margin-bottom: 0.85rem;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
+    .footer-col a {
+      color: rgba(240,240,243,0.65); text-decoration: none;
+      font-size: 0.875rem; font-weight: 600; transition: color 0.2s;
+    }
+    .footer-col a:hover { color: #59dacd; }
+    .footer-bottom {
+      max-width: 1280px; margin: 2rem auto 0;
+      padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 0.75rem; font-size: 0.8rem; color: rgba(240,240,243,0.35);
+    }
+
+    /* ── REVEAL ANIMATION ───────────────────────────────── */
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.55s ease, transform 0.55s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="nav-logo">
+      <img src="assets/Logo 1024.png" alt="My Little Circle">
+      <span>My Little Circle</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="/list-activity">List an activity</a></li>
+      <li><a href="#download" class="nav-cta">Download free</a></li>
+    </ul>
+  </nav>
+
+  <!-- ① HERO — exact layout from original: logo row, headline, desc, bullets, badges left / two phones right -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="reveal">
+        <!-- Logo + app name inline, just like original -->
+        <div class="hero-logo-row">
+          <img src="assets/Logo 1024.png" alt="My Little Circle Logo">
+          <h1>My Little Circle</h1>
+        </div>
+
+        <h2 class="hero-h2">
+          Everything around children.<br>
+          <span class="accent">All in one place.</span>
+        </h2>
+
+        <p class="hero-desc">Find local parks, classes &amp; groups. Connect with families near you. Chat one-to-one with other parents.</p>
+
+        <!-- 4 bullet points, styled with coloured icon circles like original -->
+        <ul class="hero-bullets">
+          <li class="hero-bullet">
+            <span class="bullet-icon" style="background:var(--mint);">
+              <svg viewBox="0 0 20 20" fill="#006a62"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            </span>
+            Save time
+          </li>
+          <li class="hero-bullet">
+            <span class="bullet-icon" style="background:rgba(147,149,211,0.15);">
+              <svg viewBox="0 0 20 20" fill="#575993"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+            </span>
+            Find the best nearby
+          </li>
+          <li class="hero-bullet">
+            <span class="bullet-icon" style="background:#fce7f3;">
+              <svg viewBox="0 0 20 20" fill="#be185d"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/></svg>
+            </span>
+            Trusted by local parents
+          </li>
+          <li class="hero-bullet">
+            <span class="bullet-icon" style="background:#ede9fe;">
+              <svg viewBox="0 0 20 20" fill="#7c3aed"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+            </span>
+            Made for your family
+          </li>
+        </ul>
+
+        <div class="badge-row">
+          <a href="#"><img src="assets/Apple.png" alt="Download on the App Store"></a>
+          <a href="#"><img src="assets/Google.png" alt="Get it on Google Play"></a>
+        </div>
+      </div>
+
+      <!-- Two phones side-by-side, right column -->
+      <div class="hero-phones reveal" style="transition-delay:0.15s;">
+        <div class="phone-mockup">
+          <img src="assets/MLC4_phone_home.png" alt="My Little Circle Home Screen">
+        </div>
+        <div class="phone-mockup">
+          <img src="assets/MLC4_phone_map.png" alt="My Little Circle Map Screen">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② TAGLINE SECTION — tagline image + subtitle, preserved from original -->
+  <div class="tagline-section">
+    <div class="tagline-img" role="img" aria-label="Your trusted circle for parenting"></div>
+    <p class="tagline-sub">One app for every moment, every stage, every day.</p>
+  </div>
+
+  <!-- ③ SCREENSHOTS — 4 phones side by side -->
+  <section class="screenshots-section">
+    <div class="screenshots-inner">
+      <div class="screenshots-title reveal">
+        <h2>Everything in one app</h2>
+        <p>Parks, classes, families and chat — all in My Little Circle.</p>
+      </div>
+      <div class="phones-row">
+        <div class="phone-shot reveal">
+          <div class="phone-shot-frame">
+            <img src="assets/screen_home.png" alt="Home screen">
+          </div>
+          <span class="phone-shot-label">Home</span>
+        </div>
+        <div class="phone-shot reveal" style="transition-delay:0.08s;">
+          <div class="phone-shot-frame">
+            <img src="assets/screen_classes.png" alt="Classes screen">
+          </div>
+          <span class="phone-shot-label">Classes</span>
+        </div>
+        <div class="phone-shot reveal" style="transition-delay:0.16s;">
+          <div class="phone-shot-frame">
+            <img src="assets/screen_parks.png" alt="Parks map">
+          </div>
+          <span class="phone-shot-label">Parks map</span>
+        </div>
+        <div class="phone-shot reveal" style="transition-delay:0.24s;">
+          <div class="phone-shot-frame">
+            <img src="assets/screen_detail.png" alt="Class detail">
+          </div>
+          <span class="phone-shot-label">Class detail</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ④ FEATURES — 4 cards for the real MVP features -->
+  <section class="features-section" id="features">
+    <div class="features-inner">
+      <div class="features-title reveal">
+        <h2>Everything you need, right now</h2>
+        <p>My Little Circle MVP — four things that matter most to new parents.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feat-card reveal">
+          <div class="feat-icon" style="background:var(--mint);">🌳</div>
+          <h3>Parks &amp; Playgrounds</h3>
+          <p>Find the best outdoor spots near you, rated by local parents</p>
+        </div>
+        <div class="feat-card reveal" style="transition-delay:0.07s;">
+          <div class="feat-icon" style="background:rgba(147,149,211,0.15);">🎨</div>
+          <h3>Classes &amp; Groups</h3>
+          <p>Discover baby classes, toddler groups, and activities close to home</p>
+        </div>
+        <div class="feat-card reveal" style="transition-delay:0.14s;">
+          <div class="feat-icon" style="background:#fce7f3;">👪</div>
+          <h3>Find Local Families</h3>
+          <p>Meet parents with children the same age, right in your neighbourhood</p>
+        </div>
+        <div class="feat-card reveal" style="transition-delay:0.21s;">
+          <div class="feat-icon" style="background:#ede9fe;">💬</div>
+          <h3>Private Messaging</h3>
+          <p>Chat one-to-one with other parents — safely and privately</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ HOW IT WORKS -->
+  <section class="how-section" id="how-it-works">
+    <div class="how-inner">
+      <div class="how-header reveal">
+        <h2>Find the best for your child in minutes</h2>
+        <p>No more wasted hours. No more outdated info. No more guesswork.</p>
+      </div>
+      <div class="how-steps">
+        <div class="how-step reveal">
+          <div class="step-num">1</div>
+          <h4>Create your family profile</h4>
+          <p>Tell us your child's age — we use it to show you what's relevant right now.</p>
+        </div>
+        <div class="how-step reveal" style="transition-delay:0.07s;">
+          <div class="step-num">2</div>
+          <h4>Discover parks, classes &amp; groups</h4>
+          <p>Browse everything happening nearby on one map — outdoor spaces, baby classes, and toddler groups.</p>
+        </div>
+        <div class="how-step reveal" style="transition-delay:0.14s;">
+          <div class="step-num">3</div>
+          <h4>Find local families</h4>
+          <p>See other parents nearby with children the same age — no more hoping you'll bump into someone at the park.</p>
+        </div>
+        <div class="how-step reveal" style="transition-delay:0.21s;">
+          <div class="step-num">4</div>
+          <h4>Connect privately</h4>
+          <p>Send a message, arrange a playdate, and build your local support network — safely, on your terms.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑥ FOR PROVIDERS -->
+  <section class="org-section" id="for-providers">
+    <div class="org-inner">
+      <div class="reveal">
+        <span class="chip">For activity providers</span>
+        <h2 class="org-h2">Reach local families and grow your community</h2>
+        <p class="org-body">List your classes, playgroups, or outdoor sessions on My Little Circle and get in front of local parents actively searching right now.</p>
+        <ul class="org-list">
+          <li>Reach families searching for classes and groups nearby</li>
+          <li>Fill empty spots and grow your community</li>
+          <li>Get discovered on the map by parents in your area</li>
+          <li>Free to list — no upfront cost</li>
+        </ul>
+        <a href="mailto:partnerships@mylittlecircle.co.uk" class="btn-teal">Get in touch →</a>
+      </div>
+      <div class="reveal" style="transition-delay:0.15s;">
+        <div class="glass-card">
+          <div class="glass-row">
+            <div class="glass-icon" style="background:rgba(0,169,157,0.15);">👨‍👩‍👧</div>
+            <div><strong>Growing fast</strong><span>New parents join every day</span></div>
+          </div>
+          <div class="glass-row">
+            <div class="glass-icon" style="background:rgba(147,149,211,0.15);">📍</div>
+            <div><strong>Cambridge first</strong><span>Expanding to more UK cities soon</span></div>
+          </div>
+          <div class="glass-row">
+            <div class="glass-icon" style="background:rgba(0,169,157,0.15);">⭐</div>
+            <div><strong>Trusted reviews</strong><span>Verified parent ratings</span></div>
+          </div>
+          <div class="glass-row">
+            <div class="glass-icon" style="background:rgba(147,149,211,0.15);">💸</div>
+            <div><strong>Free to list</strong><span>No setup or subscription fees</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+
+  <!-- ⑧ FOOTER -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo">
+          <img src="assets/Logo 1024.png" alt="My Little Circle">
+          <span style="color:var(--inverse-on-surface);">My Little Circle</span>
+        </a>
+        <p>Your trusted circle for parenting in Cambridge and beyond.</p>
+        <p style="margin-top:4px;">© 2026 KPL Ltd. All rights reserved.</p>
+      </div>
+      <div class="footer-col">
+        <h4>App</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="/list-activity">List an activity</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="/privacy-policy">Privacy Policy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+          <li><a href="/community-guidelines">Community Guidelines</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:hello@mylittlecircle.co.uk">hello@</a></li>
+          <li><a href="mailto:support@mylittlecircle.co.uk">support@</a></li>
+          <li><a href="mailto:partnerships@mylittlecircle.co.uk">partnerships@</a></li>
+          <li><a href="mailto:dev@mylittlecircle.co.uk">dev@</a></li>
+          <li><a href="mailto:legal@mylittlecircle.co.uk">legal@</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 KPL Ltd, trading as My Little Circle. Registered in England and Wales.</span>
+      <span>Made with ❤️ for families in Cambridge</span>
+    </div>
+  </footer>
+
+  <script>
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  </script>
+</body>
+</html>

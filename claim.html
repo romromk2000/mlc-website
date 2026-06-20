@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm your nursery details — My Little Circle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal:       #006a62;
+      --teal-light: #e0f2f1;
+      --teal-mid:   #80c8c2;
+      --border:     #e2e2e5;
+      --surface:    #f3f3f6;
+      --muted:      #6c7a77;
+      --danger:     #ba1a1a;
+      --r:          12px;
+      --r-sm:       8px;
+      --r-full:     9999px;
+    }
+    body {
+      font-family: 'Manrope', sans-serif;
+      background: linear-gradient(135deg, #e0f2f1 0%, #f9f9fc 60%);
+      min-height: 100vh;
+      padding: 32px 16px 64px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 36px 40px 40px;
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 8px 40px rgba(0,106,98,.12);
+    }
+    @media (max-width: 560px) {
+      .card { padding: 28px 20px 32px; }
+    }
+
+    /* ── Logo ── */
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+    .logo-mark {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--teal); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; letter-spacing: -.5px;
+    }
+    .logo-name { font-size: 15px; font-weight: 800; color: var(--teal); }
+
+    /* ── Header ── */
+    .nursery-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--teal-light); border-radius: var(--r-full);
+      padding: 5px 12px; font-size: 12px; font-weight: 700;
+      color: var(--teal); margin-bottom: 14px;
+    }
+    h1 { font-size: 22px; font-weight: 800; color: #1a1c1e; margin-bottom: 6px; }
+    .sub {
+      font-size: 13px; color: var(--muted); line-height: 1.65;
+      margin-bottom: 32px;
+    }
+
+    /* ── Section divider ── */
+    .section-title {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .6px;
+      padding-bottom: 8px; margin: 28px 0 16px;
+      border-bottom: 1.5px solid var(--border);
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    /* ── Text / textarea / select fields ── */
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 700;
+      color: #3d3d3d; margin-bottom: 6px;
+    }
+    .field input[type=text],
+    .field textarea,
+    .field select {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px; color: #1a1c1e;
+      outline: none; transition: border-color .2s; background: #fff;
+      appearance: none;
+    }
+    .field select { cursor: pointer; }
+    .field input[type=text]:focus,
+    .field textarea:focus,
+    .field select:focus { border-color: var(--teal); }
+    .field textarea { resize: vertical; min-height: 76px; line-height: 1.55; }
+
+    /* ── Evidence block ── */
+    .evidence {
+      margin-top: 6px; padding: 7px 11px 7px 12px;
+      background: #f0faf9;
+      border-left: 3px solid var(--teal-mid);
+      border-radius: 0 var(--r-sm) var(--r-sm) 0;
+      font-size: 12px; color: var(--muted); line-height: 1.55;
+    }
+    .evidence b { color: var(--teal); font-weight: 700; }
+
+    /* ── Boolean toggle row ── */
+    .bool-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      cursor: pointer; transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .bool-row:hover { border-color: #b2d8d5; background: #fafefe; }
+    .bool-row.on { border-color: var(--teal); background: #f0faf9; }
+    .toggle {
+      flex-shrink: 0; width: 42px; height: 24px; border-radius: 12px;
+      background: #ccc; position: relative; transition: background .2s;
+    }
+    .toggle::after {
+      content: ''; position: absolute; top: 4px; left: 4px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+      transition: transform .2s;
+    }
+    .bool-row.on .toggle { background: var(--teal); }
+    .bool-row.on .toggle::after { transform: translateX(18px); }
+    .bool-label { font-size: 14px; font-weight: 600; color: #1a1c1e; flex: 1; }
+
+    /* ── Submit ── */
+    .btn {
+      width: 100%; padding: 14px; margin-top: 10px;
+      border-radius: var(--r); border: none; cursor: pointer;
+      font-family: inherit; font-size: 15px; font-weight: 800;
+      background: var(--teal); color: #fff;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .88; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .form-error { color: var(--danger); font-size: 12px; margin-top: 8px; min-height: 16px; }
+
+    /* ── Re-visit note ── */
+    .already-claimed {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--teal-light); border-radius: var(--r-sm);
+      padding: 10px 14px; margin-bottom: 24px;
+      font-size: 12px; color: var(--teal); font-weight: 600;
+    }
+
+    /* ── States ── */
+    .state { display: none; }
+    .state.active { display: block; }
+
+    .loading-state { text-align: center; padding: 56px 0; color: var(--muted); font-size: 14px; }
+    .loading-state .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--teal-light);
+      border-top-color: var(--teal); border-radius: 50%;
+      animation: spin .7s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-state, .success-state { text-align: center; padding: 48px 0; }
+    .state-icon { font-size: 52px; margin-bottom: 16px; }
+    .state-title { font-size: 20px; font-weight: 800; color: #1a1c1e; margin-bottom: 8px; }
+    .success-state .state-title { color: var(--teal); }
+    .state-body { font-size: 13px; color: var(--muted); line-height: 1.7; }
+    .state-body a { color: var(--teal); }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-mark">MLC</div>
+    <span class="logo-name">My Little Circle</span>
+  </div>
+
+  <!-- Loading -->
+  <div id="s-loading" class="state active loading-state">
+    <div class="spinner"></div>
+    Loading your details…
+  </div>
+
+  <!-- Token not found -->
+  <div id="s-error" class="state error-state">
+    <div class="state-icon">🔍</div>
+    <div class="state-title">Link not found</div>
+    <p class="state-body">
+      This link is invalid or has expired.<br>
+      If you think this is a mistake, email us at
+      <a href="mailto:hello@mylittlecircle.co.uk">hello@mylittlecircle.co.uk</a>
+    </p>
+  </div>
+
+  <!-- Form -->
+  <div id="s-form" class="state">
+    <div class="nursery-badge" id="nursery-badge">🏫 <span id="nursery-name-badge"></span></div>
+    <h1>Confirm your details</h1>
+    <p class="sub">
+      We've pre-filled these from your website and public records.
+      Review each section, correct anything that's wrong, then hit save.
+      Where you see a blue note, that's the exact text we found — it takes about 2 minutes.
+    </p>
+
+    <div id="already-claimed-banner" class="already-claimed" style="display:none">
+      ✓ You confirmed these details on <span id="claimed-date"></span>. You can update them below.
+    </div>
+
+    <div id="fields-container"></div>
+
+    <button class="btn" id="submit-btn" onclick="submitClaim()">Confirm and save</button>
+    <p class="form-error" id="submit-error"></p>
+  </div>
+
+  <!-- Success -->
+  <div id="s-success" class="state success-state">
+    <div class="state-icon">✅</div>
+    <div class="state-title">Details confirmed!</div>
+    <p class="state-body">
+      Thank you — your nursery's listing on My Little Circle is now up to date.<br><br>
+      If anything changes, just use this link again.
+    </p>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://emzlwkgpmckxqehsefyq.supabase.co'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtemx3a2dwbWNreHFlaHNlZnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2Mzg2MzksImV4cCI6MjA5NTIxNDYzOX0.cY-nSK7N8xdhSnZ6U40C3yychdzV-T7wtbGX4MyfxdI'
+
+// Extract token from /claim/TOKEN — works with Vercel cleanUrls rewrite
+const pathParts  = window.location.pathname.split('/').filter(Boolean)
+const claimIdx   = pathParts.indexOf('claim')
+const TOKEN      = claimIdx >= 0 ? (pathParts[claimIdx + 1] || '') : ''
+
+let claimRecord = null
+
+// ── Field definitions (matches build_claim_queue.py FORM_FIELDS) ─────────────
+
+const SECTIONS = [
+  {
+    title: 'Hours & availability',
+    fields: [
+      { key: 'age_range',       label: 'Age range',           type: 'text',
+        placeholder: 'e.g. 3 months to 5 years' },
+      { key: 'opening_hours',   label: 'Opening hours',       type: 'lines',
+        placeholder: 'One entry per line\ne.g. Monday–Friday: 7:30am–6pm' },
+      { key: 'opening_pattern', label: 'Opening pattern',     type: 'select',
+        options: [['', 'Not sure / other'], ['term_time_only', 'Term time only'], ['all_year', 'Open all year round']] },
+      { key: 'takes_babies',    label: 'Takes babies (under 1)', type: 'bool' },
+    ],
+  },
+  {
+    title: 'Fees & funding',
+    fields: [
+      { key: 'fees',       label: 'Fees',                        type: 'lines',
+        placeholder: 'One entry per line\ne.g. £6.50 per hour' },
+      { key: 'funded_15h', label: '15-hour funded childcare',    type: 'bool' },
+      { key: 'funded_30h', label: '30-hour funded childcare',    type: 'bool' },
+      { key: 'funded_2yo', label: '2-year-old funding',          type: 'bool' },
+    ],
+  },
+  {
+    title: 'Provision',
+    fields: [
+      { key: 'meals',        label: 'Meals',              type: 'select',
+        options: [['', 'Not sure / other'], ['meals_provided', 'Meals provided'], ['packed_lunch', 'Packed lunch required']] },
+      { key: 'ethos',        label: 'Approach / ethos',   type: 'lines',
+        placeholder: 'One entry per line\ne.g. Montessori' },
+      { key: 'send_support', label: 'SEND support',       type: 'bool' },
+    ],
+  },
+]
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function show(id) {
+  document.querySelectorAll('.state').forEach(el => el.classList.remove('active'))
+  document.getElementById(id).classList.add('active')
+}
+
+function apiHeaders() {
+  return {
+    'Content-Type':  'application/json',
+    'Authorization': `Bearer ${SUPABASE_ANON}`,
+    'apikey':        SUPABASE_ANON,
+  }
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
+
+function evidenceHtml(evidence) {
+  if (!evidence) return ''
+  return `<div class="evidence"><b>From your website:</b> "${esc(evidence)}"</div>`
+}
+
+function renderField(def, prefillEntry, confirmedEntry) {
+  // Prefer previously confirmed value if the nursery has been here before
+  const val      = confirmedEntry?.value ?? prefillEntry?.value ?? null
+  const evidence = prefillEntry?.evidence ?? confirmedEntry?.evidence ?? null
+  const id       = `f-${def.key}`
+
+  if (def.type === 'bool') {
+    const isOn = val === true
+    return `<div class="field">
+      <div class="bool-row${isOn ? ' on' : ''}" id="${id}-row" onclick="toggleBool('${def.key}')">
+        <div class="toggle"></div>
+        <span class="bool-label">${esc(def.label)}</span>
+        <input type="hidden" id="${id}" value="${isOn ? 'true' : 'false'}">
+      </div>
+      ${evidenceHtml(evidence)}
+    </div>`
+  }
+
+  if (def.type === 'text') {
+    return `<div class="field">
+      <label for="${id}">${esc(def.label)}</label>
+      <input type="text" id="${id}" value="${esc(val ?? '')}" placeholder="${esc(def.placeholder || '')}">
+      ${evidenceHtml(evidence)}
+    </div>`
+  }
+
+  if (def.type === 'lines') {
+    const text = Array.isArray(val) ? val.join('\n') : (val ?? '')
+    return `<div class="field">
+      <label for="${id}">${esc(def.label)}</label>
+      <textarea id="${id}" placeholder="${esc(def.placeholder || '')}">${esc(text)}</textarea>
+      ${evidenceHtml(evidence)}
+    </div>`
+  }
+
+  if (def.type === 'select') {
+    const opts = def.options.map(([v, label]) =>
+      `<option value="${esc(v)}"${val === v ? ' selected' : ''}>${esc(label)}</option>`
+    ).join('')
+    return `<div class="field">
+      <label for="${id}">${esc(def.label)}</label>
+      <select id="${id}">${opts}</select>
+      ${evidenceHtml(evidence)}
+    </div>`
+  }
+
+  return ''
+}
+
+function renderForm(data) {
+  claimRecord = data
+
+  document.getElementById('nursery-name-badge').textContent = data.name || 'Your nursery'
+
+  if (data.claimed_at) {
+    const d = new Date(data.claimed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    document.getElementById('claimed-date').textContent = d
+    document.getElementById('already-claimed-banner').style.display = 'flex'
+  }
+
+  const prefill    = data.prefill        || {}
+  const confirmed  = data.confirmed_data || {}
+  let html = ''
+
+  for (const section of SECTIONS) {
+    html += `<div class="section-title">${esc(section.title)}</div>`
+    for (const def of section.fields) {
+      html += renderField(def, prefill[def.key], confirmed[def.key])
+    }
+  }
+
+  document.getElementById('fields-container').innerHTML = html
+  show('s-form')
+}
+
+// ── Toggle interaction ────────────────────────────────────────────────────────
+
+function toggleBool(key) {
+  const row    = document.getElementById(`f-${key}-row`)
+  const hidden = document.getElementById(`f-${key}`)
+  const next   = hidden.value !== 'true'
+  hidden.value = next ? 'true' : 'false'
+  row.classList.toggle('on', next)
+}
+
+// ── Collect form values ───────────────────────────────────────────────────────
+
+function collectConfirmedData() {
+  const prefill = claimRecord?.prefill || {}
+  const out     = {}
+
+  for (const section of SECTIONS) {
+    for (const def of section.fields) {
+      const el = document.getElementById(`f-${def.key}`)
+      if (!el) continue
+
+      let value = null
+      if (def.type === 'text')   value = el.value.trim() || null
+      if (def.type === 'lines') {
+        const lines = el.value.split('\n').map(l => l.trim()).filter(Boolean)
+        value = lines.length ? lines : null
+      }
+      if (def.type === 'select') value = el.value || null
+      if (def.type === 'bool')   value = el.value === 'true'
+
+      out[def.key] = {
+        value,
+        evidence:  prefill[def.key]?.evidence ?? null,
+        confirmed: true,
+      }
+    }
+  }
+  return out
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+
+async function submitClaim() {
+  const btn   = document.getElementById('submit-btn')
+  const errEl = document.getElementById('submit-error')
+  errEl.textContent = ''
+  btn.textContent = 'Saving…'; btn.disabled = true
+
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/nursery-claim`, {
+      method:  'POST',
+      headers: apiHeaders(),
+      body:    JSON.stringify({ token: TOKEN, confirmed_data: collectConfirmedData() }),
+    })
+    if (!resp.ok) {
+      const json = await resp.json().catch(() => ({}))
+      throw new Error(json.error || `HTTP ${resp.status}`)
+    }
+    show('s-success')
+  } catch (e) {
+    errEl.textContent = e.message || 'Something went wrong. Please try again.'
+    btn.textContent = 'Confirm and save'; btn.disabled = false
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+async function init() {
+  if (!TOKEN) {
+    show('s-error')
+    return
+  }
+
+  try {
+    const resp = await fetch(
+      `${SUPABASE_URL}/functions/v1/nursery-claim?token=${encodeURIComponent(TOKEN)}`,
+      { headers: apiHeaders() }
+    )
+    if (!resp.ok) throw new Error()
+    renderForm(await resp.json())
+  } catch {
+    show('s-error')
+  }
+}
+
+init()
+</script>
+</body>
+</html>

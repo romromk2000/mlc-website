@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Confirmed — My Little Circle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --teal-dark: #006a62; --border: #e2e2e5; --on-variant: #6c7a77; --r: 12px; }
+    body { font-family: 'Manrope', sans-serif; background: linear-gradient(135deg, #e0f2f1 0%, #f9f9fc 60%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 20px; padding: 48px 40px; width: 460px; box-shadow: 0 8px 40px rgba(0,106,98,.12); text-align: center; }
+    .icon { font-size: 64px; margin-bottom: 20px; }
+    h1 { font-size: 24px; font-weight: 800; color: var(--teal-dark); margin-bottom: 10px; }
+    .subtitle { font-size: 14px; color: var(--on-variant); line-height: 1.6; margin-bottom: 28px; }
+    .class-pill { display: inline-flex; align-items: center; gap: 6px; background: #e0f2f1; border-radius: 9999px; padding: 6px 16px; font-size: 13px; font-weight: 700; color: var(--teal-dark); margin-bottom: 28px; }
+    .info-box { background: #f0f9f8; border: 1px solid #c8e6e4; border-radius: var(--r); padding: 16px 20px; font-size: 13px; color: var(--teal-dark); line-height: 1.6; margin-bottom: 28px; text-align: left; }
+    .info-box strong { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #9eada9; margin-bottom: 6px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 28px; border-radius: var(--r); border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; text-decoration: none; transition: opacity .15s; }
+    .btn:hover { opacity: .88; }
+    .btn-primary { background: var(--teal-dark); color: #fff; }
+    .btn-ghost { background: #f3f3f6; color: #1a1c1e; margin-top: 10px; }
+    .loading { color: var(--on-variant); font-size: 14px; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #e2e2e5; border-top-color: var(--teal-dark); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div id="loading-view">
+    <div class="icon">⏳</div>
+    <p class="loading"><span class="spinner"></span>Confirming your booking…</p>
+  </div>
+
+  <div id="success-view" style="display:none">
+    <div class="icon">🎉</div>
+    <h1>You're booked in!</h1>
+    <div id="class-pill" class="class-pill" style="display:none"></div>
+    <p class="subtitle">Payment confirmed. A receipt has been sent to your email.</p>
+    <div id="booking-detail" class="info-box" style="display:none"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <a href="/" class="btn btn-primary">Back to My Little Circle</a>
+      <a id="class-link" href="/" class="btn btn-ghost" style="display:none">View class details</a>
+    </div>
+  </div>
+
+  <div id="error-view" style="display:none">
+    <div class="icon">😕</div>
+    <h1>Something went wrong</h1>
+    <p class="subtitle">We couldn't confirm your booking. Please check your email for a receipt, or contact us if you need help.</p>
+    <a href="/" class="btn btn-primary" style="margin-top:8px">Back to home</a>
+  </div>
+</div>
+
+<script>
+const { createClient } = window.supabase
+const db = createClient(
+  'https://emzlwkgpmckxqehsefyq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtemx3a2dwbWNreHFlaHNlZnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2Mzg2MzksImV4cCI6MjA5NTIxNDYzOX0.cY-nSK7N8xdhSnZ6U40C3yychdzV-T7wtbGX4MyfxdI'
+)
+
+const params    = new URLSearchParams(window.location.search)
+const sessionId = params.get('session_id')
+
+async function init() {
+  if (!sessionId) { showError(); return }
+
+  // Poll up to ~6 seconds for the webhook to process
+  let payment = null
+  for (let i = 0; i < 6; i++) {
+    const { data } = await db
+      .from('payments')
+      .select('status, class_id, amount_pence')
+      .eq('stripe_session_id', sessionId)
+      .single()
+    if (data?.status === 'succeeded') { payment = data; break }
+    if (data?.status === 'failed')    { showError(); return }
+    await new Promise(r => setTimeout(r, 1000))
+  }
+
+  if (!payment) {
+    // Webhook may not have fired yet — show success anyway (Stripe confirmed payment)
+    showSuccess(null, null)
+    return
+  }
+
+  let cls = null
+  if (payment.class_id) {
+    const { data } = await db.from('classes').select('id, name, venue_name, day_of_week, time_start').eq('id', payment.class_id).single()
+    cls = data
+  }
+
+  showSuccess(payment, cls)
+}
+
+function showSuccess(payment, cls) {
+  document.getElementById('loading-view').style.display = 'none'
+  document.getElementById('success-view').style.display = 'block'
+
+  if (cls) {
+    const pill = document.getElementById('class-pill')
+    pill.textContent = `📚 ${cls.name}`
+    pill.style.display = 'inline-flex'
+
+    const detail = document.getElementById('booking-detail')
+    const lines = []
+    if (cls.venue_name) lines.push(`📍 ${cls.venue_name}`)
+    if (cls.day_of_week) {
+      const time = cls.time_start ? ` · ${cls.time_start.slice(0,5)}` : ''
+      lines.push(`📅 ${cls.day_of_week}${time}`)
+    }
+    if (payment?.amount_pence) lines.push(`💳 £${(payment.amount_pence / 100).toFixed(2)} paid`)
+    if (lines.length) {
+      detail.innerHTML = `<strong>Booking details</strong>${lines.join('<br>')}`
+      detail.style.display = 'block'
+    }
+
+    const classLink = document.getElementById('class-link')
+    classLink.href = `/#class=${cls.id}`
+    classLink.style.display = 'inline-flex'
+  }
+}
+
+function showError() {
+  document.getElementById('loading-view').style.display = 'none'
+  document.getElementById('error-view').style.display   = 'block'
+}
+
+init()
+</script>
+</body>
+</html>

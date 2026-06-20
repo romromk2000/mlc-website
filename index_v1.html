@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Little Circle - Everything Around Children. All in One Place.</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #FDFBFF;
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #10B981, #3B82F6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .mylittlecircle-logo {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #1F2937;
+    }
+    .mylittlecircle-logo span {
+      color: #10B981;
+    }
+    .phone-mockup {
+      background: #000;
+      border-radius: 3rem;
+      padding: 0.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      width: 100%;
+      max-width: 300px;
+    }
+    .phone-screen {
+      border-radius: 2.5rem;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .feature-card {
+      transition: all 0.3s ease;
+      border-radius: 1.5rem;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .hero-bg {
+      background: radial-gradient(ellipse at 80% 20%, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 50%);
+    }
+    .tagline-container {
+      background: url('assets/MLC4_tagline.png') no-repeat center;
+      background-size: contain;
+      height: 30px; /* Reduced from 40px to 30px */
+      width: 100%;
+      margin: 0.5rem 0; /* Reduced from 1rem to 0.5rem */
+    }
+    .grid-image-container {
+      width: 100%;
+      margin-bottom: 6rem;
+    }
+    .grid-image {
+      width: 100%;
+      height: auto;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      object-fit: cover;
+    }
+    .grid-image-wrapper {
+      height: 300px;
+      overflow: hidden;
+    }
+    .app-badge {
+      height: 60px;
+      width: auto;
+    }
+    .google-badge {
+      height: 60px; /* Google badge is now larger */
+      width: auto;
+    }
+    @media (min-width: 768px) {
+      .features-grid {
+        grid-template-columns: repeat(5, 1fr) !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-white">
+  <!-- Hero Section -->
+  <section class="hero-bg min-h-screen flex items-center justify-center px-4 py-20">
+    <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+      <!-- Left Side: Text Content -->
+      <div class="text-center lg:text-left">
+        <!-- Logo -->
+        <div class="flex items-center justify-center lg:justify-start mb-6">
+          <img src="assets/Logo 1024.png" alt="My Little Circle Logo" class="w-14 h-14 mr-4">
+          <h1 class="mylittlecircle-logo">My Little Circle<span></span></h1>
+        </div>
+        <!-- Tagline -->
+        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
+          Everything around children.
+          <span class="gradient-text">All in one place.</span>
+        </h2>
+
+        <!-- Description -->
+        <p class="text-xl text-gray-600 mb-8 max-w-lg">
+          Parks, classes, nurseries, activities, health & more.
+        </p>
+
+        <!-- Features List -->
+        <div class="space-y-4 mb-8 text-gray-700">
+          <div class="flex items-center justify-center lg:justify-start">
+            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <span class="text-lg">Save time</span>
+          </div>
+          <div class="flex items-center justify-center lg:justify-start">
+            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <span class="text-lg">Find the best</span>
+          </div>
+          <div class="flex items-center justify-center lg:justify-start">
+            <div class="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink-600" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+              </svg>
+            </div>
+            <span class="text-lg">Trusted by parents</span>
+          </div>
+          <div class="flex items-center justify-center lg:justify-start">
+            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+              </svg>
+            </div>
+            <span class="text-lg">Made for your family</span>
+          </div>
+        </div>
+
+        <!-- Download Badges -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+          <a href="#" class="hover:opacity-80 transition-opacity">
+            <img src="assets/Apple.png" alt="Download on the App Store" class="app-badge">
+          </a>
+          <a href="#" class="hover:opacity-80 transition-opacity">
+            <img src="assets/Google.png" alt="Get it on Google Play" class="google-badge">
+          </a>
+        </div>
+      </div>
+
+      <!-- Right Side: Phone Mockups -->
+      <div class="flex flex-col sm:flex-row justify-center lg:justify-end items-center gap-4">
+        <div class="phone-mockup">
+          <img src="assets/MLC4_phone_home.png" alt="My Little Circle App Home Screen" class="phone-screen">
+        </div>
+        <div class="phone-mockup">
+          <img src="assets/MLC4_phone_map.png" alt="My Little Circle App Map Screen" class="phone-screen">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tagline Section -->
+  <section class="py-4 px-4"> <!-- Reduced padding from py-8 to py-4 -->
+    <div class="max-w-4xl mx-auto text-center">
+      <div class="tagline-container"></div>
+      <p class="text-xl text-gray-600 mt-1"> <!-- Reduced margin from mt-2 to mt-1 -->
+        One app for every moment, every stage, every day.
+      </p>
+    </div>
+  </section>
+
+  <!-- App Screenshots Grid -->
+  <section class="py-16 px-4 bg-gray-50">
+    <div class="max-w-7xl mx-auto">
+      <!-- Grid Image 1 -->
+      <div class="grid-image-container">
+        <div class="grid-image-wrapper">
+          <img src="assets/MLC4_grid1.png" alt="My Little Circle App Screenshot 1" class="grid-image">
+        </div>
+      </div>
+      <!-- Grid Image 2 -->
+      <div class="grid-image-container">
+        <div class="grid-image-wrapper">
+          <img src="assets/MLC4_grid2.png" alt="My Little Circle App Screenshot 2" class="grid-image">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="py-16 px-4">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid md:grid-cols-5 gap-8 features-grid">
+        <!-- Feature 1: All Ages -->
+        <div class="feature-card bg-white p-6 text-center shadow-sm">
+          <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 9.99999C12.6522 9.99999 14.8333 7.81885 14.8333 4.99999C14.8333 2.18114 12.6522 0 10 0C7.34779 0 5.16666 2.18114 5.16666 4.99999C5.16666 7.81885 7.34779 9.99999 10 9.99999ZM10 15C14.9706 15 19 10.9706 19 6C19 1.02944 14.9706 0 10 0C5.02944 0 1 5.02944 1 10C1 14.9706 5.02944 20 10 20C14.9706 20 19 14.9706 19 10C19 8.81885 18.6522 7.74779 18 6.83332V15H10ZM10 15C5.02944 15 1 10.9706 1 6C1 1.02944 5.02944 0 10 0C14.9706 0 19 5.02944 19 10C19 14.9706 14.9706 20 10 20C5.02944 20 1 14.9706 1 10C1 8.81885 1.34779 7.74779 2 6.83332V15H10Z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">All ages</h3>
+          <p class="text-gray-600">From baby to teens</p>
+        </div>
+
+        <!-- Feature 2: Personalised -->
+        <div class="feature-card bg-white p-6 text-center shadow-sm">
+          <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-pink-600" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">Personalised</h3>
+          <p class="text-gray-600">For your family</p>
+        </div>
+
+        <!-- Feature 3: Local & Trusted -->
+        <div class="feature-card bg-white p-6 text-center shadow-sm">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">Local & Trusted</h3>
+          <p class="text-gray-600">Real parent reviews</p>
+        </div>
+
+        <!-- Feature 4: Always Updated -->
+        <div class="feature-card bg-white p-6 text-center shadow-sm">
+          <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-600" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">Always Updated</h3>
+          <p class="text-gray-600">Fresh information</p>
+        </div>
+
+        <!-- Feature 5: Growing Every Day -->
+        <div class="feature-card bg-white p-6 text-center shadow-sm">
+          <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">Growing Every Day</h3>
+          <p class="text-gray-600">More added all the time</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

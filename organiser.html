@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organiser Portal — My Little Circle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/rrule@2.7.2/dist/es5/rrule.min.js"></script>
+  <script>if (typeof RRule === 'undefined' && typeof rrule !== 'undefined') { window.RRule = rrule.RRule }</script>
+  <script src="recurrence-picker.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal: #00a99d; --teal-dark: #006a62; --lavender: #9395d3;
+      --surface: #f9f9fc; --surface-low: #f3f3f6; --surface-high: #e2e2e5;
+      --on-surface: #1a1c1e; --on-variant: #6c7a77;
+      --danger: #ba1a1a; --danger-bg: #ffdad6;
+      --warn-bg: #fff3e0; --warn: #e65100;
+      --ok-bg: #e6f4ea; --ok: #1b5e20;
+      --border: #e2e2e5;
+      --r: 12px; --r-sm: 8px; --r-full: 9999px;
+    }
+    html, body { height: 100%; font-family: 'Manrope', sans-serif; color: var(--on-surface); background: var(--surface); font-size: 14px; }
+
+    /* ── ONBOARDING ───────────────────────────────────────────── */
+    #onboarding-screen {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: linear-gradient(135deg, #e0f2f1 0%, #f9f9fc 60%);
+      align-items: center; justify-content: center; overflow-y: auto; padding: 24px;
+    }
+    .ob-card {
+      background: #fff; border-radius: 24px; padding: 44px 48px;
+      width: 560px; max-width: 100%;
+      box-shadow: 0 12px 56px rgba(0,106,98,.13);
+    }
+    .ob-steps { display: flex; align-items: center; gap: 6px; margin-bottom: 36px; }
+    .ob-step {
+      height: 4px; border-radius: 2px; flex: 1;
+      background: var(--border); transition: background .3s;
+    }
+    .ob-step.done { background: var(--teal-dark); }
+    .ob-step.active { background: var(--teal); }
+    .ob-label { font-size: 11px; font-weight: 700; color: var(--on-variant); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+    .ob-title { font-size: 22px; font-weight: 800; color: var(--teal-dark); margin-bottom: 6px; }
+    .ob-sub { font-size: 13px; color: var(--on-variant); line-height: 1.6; margin-bottom: 28px; }
+    .ob-field { margin-bottom: 16px; }
+    .ob-field label { display: block; font-size: 11px; font-weight: 700; color: var(--on-variant); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .ob-field input, .ob-field textarea {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+      border-radius: var(--r); font-family: inherit; font-size: 14px; outline: none;
+      transition: border-color .2s; background: #fff;
+    }
+    .ob-field input:focus, .ob-field textarea:focus { border-color: var(--teal-dark); }
+    .ob-field textarea { min-height: 90px; resize: vertical; line-height: 1.5; }
+    .ob-char { font-size: 11px; color: var(--on-variant); text-align: right; margin-top: 4px; }
+
+    /* logo uploader */
+    .ob-logo-area {
+      display: flex; align-items: center; gap: 20px; margin-bottom: 24px;
+    }
+    .ob-logo-preview {
+      width: 88px; height: 88px; border-radius: 20px; flex-shrink: 0;
+      background: var(--surface-low); border: 2px dashed var(--border);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; position: relative; cursor: pointer; transition: border-color .2s;
+    }
+    .ob-logo-preview:hover { border-color: var(--teal-dark); }
+    .ob-logo-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .ob-logo-preview .ob-logo-placeholder { font-size: 28px; color: var(--on-variant); }
+    .ob-logo-input { display: none; }
+    .ob-logo-info { font-size: 13px; color: var(--on-variant); line-height: 1.6; }
+    .ob-logo-info strong { display: block; font-size: 14px; font-weight: 700; color: var(--on-surface); margin-bottom: 4px; }
+    .ob-upload-btn { margin-top: 8px; padding: 7px 16px; border-radius: var(--r-sm); border: 1.5px solid var(--border); background: var(--surface-low); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color .15s; }
+    .ob-upload-btn:hover { border-color: var(--teal-dark); }
+
+    /* category chips */
+    .ob-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ob-chip {
+      padding: 7px 16px; border-radius: var(--r-full);
+      border: 1.5px solid var(--border); background: var(--surface-low);
+      font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      color: var(--on-surface); transition: all .15s; user-select: none;
+    }
+    .ob-chip.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+
+    /* nav buttons */
+    .ob-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 32px; }
+    .ob-btn-next {
+      padding: 12px 28px; border-radius: var(--r); border: none; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 700;
+      background: var(--teal-dark); color: #fff; transition: opacity .15s;
+    }
+    .ob-btn-next:hover { opacity: .88; }
+    .ob-btn-back {
+      padding: 12px 20px; border-radius: var(--r); border: none; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      background: transparent; color: var(--on-variant); transition: color .15s;
+    }
+    .ob-btn-back:hover { color: var(--on-surface); }
+    .ob-skip { font-size: 12px; font-weight: 600; color: var(--on-variant); cursor: pointer; text-decoration: underline; }
+    .ob-skip:hover { color: var(--on-surface); }
+
+    /* completion screen */
+    .ob-done { text-align: center; padding: 12px 0; }
+    .ob-done-icon { font-size: 60px; margin-bottom: 20px; }
+    .ob-done h2 { font-size: 22px; font-weight: 800; color: var(--teal-dark); margin-bottom: 8px; }
+    .ob-done p { font-size: 14px; color: var(--on-variant); line-height: 1.6; margin-bottom: 28px; }
+
+    /* ── AUTH ─────────────────────────────────────────────────── */
+    #auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #e0f2f1 0%, #f9f9fc 60%); }
+    .auth-card { background: #fff; border-radius: 20px; padding: 40px; width: 420px; box-shadow: 0 8px 40px rgba(0,106,98,.12); }
+    .auth-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .auth-logo img { width: 48px; height: 48px; border-radius: 12px; }
+    .auth-logo h1 { font-size: 20px; font-weight: 800; color: var(--teal-dark); }
+    .auth-logo p { font-size: 12px; color: var(--on-variant); }
+    .auth-tabs { display: flex; border-bottom: 1.5px solid var(--border); margin-bottom: 24px; }
+    .auth-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: 700; color: var(--on-variant); cursor: pointer; border-bottom: 2.5px solid transparent; margin-bottom: -1.5px; transition: all .15s; }
+    .auth-tab.active { color: var(--teal-dark); border-bottom-color: var(--teal-dark); }
+    .auth-form { display: flex; flex-direction: column; gap: 12px; }
+    .auth-form input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--r); font-family: inherit; font-size: 14px; outline: none; transition: border-color .2s; }
+    .auth-form input:focus { border-color: var(--teal-dark); }
+    .auth-error { font-size: 12px; min-height: 16px; color: var(--danger); }
+    .auth-ok { color: var(--ok) !important; }
+
+    /* ── LAYOUT ───────────────────────────────────────────────── */
+    #app { display: none; height: 100vh; flex-direction: column; }
+    header { height: 56px; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 0 24px; flex-shrink: 0; }
+    header img { width: 28px; height: 28px; border-radius: 7px; }
+    header .brand { font-weight: 800; color: var(--teal-dark); font-size: 15px; }
+    header .badge { background: var(--lavender); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-full); }
+    header .spacer { flex: 1; }
+    header .user-name { font-size: 13px; font-weight: 600; }
+    .body-layout { display: flex; flex: 1; overflow: hidden; }
+    aside { width: 210px; background: #fff; border-right: 1px solid var(--border); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+    .nav-btn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); border: none; background: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--on-variant); width: 100%; text-align: left; transition: background .15s; }
+    .nav-btn:hover { background: var(--surface-low); }
+    .nav-btn.active { background: #e0f2f1; color: var(--teal-dark); }
+    main { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* ── SECTION ──────────────────────────────────────────────── */
+    .section-top { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .section-top h2 { font-size: 18px; font-weight: 800; color: var(--teal-dark); flex: 1; }
+
+    /* ── STATS ────────────────────────────────────────────────── */
+    .stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-card { flex: 1; min-width: 130px; background: #fff; border-radius: var(--r); border: 1px solid var(--border); padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+    .stat-value { font-size: 28px; font-weight: 800; color: var(--teal-dark); line-height: 1; }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.ok { color: var(--ok); }
+    .stat-label { font-size: 12px; font-weight: 600; color: var(--on-variant); }
+    .stat-sub { font-size: 11px; color: var(--on-variant); margin-top: 2px; opacity: .7; }
+
+    /* ── PERIOD ───────────────────────────────────────────────── */
+    .period-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .period-chip { padding: 6px 16px; border-radius: var(--r-full); border: 1.5px solid var(--border); background: var(--surface-low); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; }
+    .period-chip.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+    .custom-dates { display: flex; gap: 8px; align-items: center; }
+    .custom-dates input { padding: 6px 10px; border: 1.5px solid var(--border); border-radius: var(--r-sm); font-family: inherit; font-size: 12px; outline: none; }
+    .custom-dates input:focus { border-color: var(--teal-dark); }
+
+    /* ── TABLE ────────────────────────────────────────────────── */
+    .table-wrap { background: #fff; border-radius: var(--r); border: 1px solid var(--border); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { padding: 10px 14px; background: var(--surface-low); font-size: 11px; font-weight: 700; color: var(--on-variant); text-transform: uppercase; letter-spacing: .5px; text-align: left; border-bottom: 1px solid var(--border); }
+    tbody tr { border-bottom: 1px solid var(--surface-low); transition: background .1s; cursor: pointer; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f7fffe; }
+    td { padding: 10px 14px; vertical-align: middle; }
+    .td-name { font-weight: 700; font-size: 13px; }
+    .td-meta { font-size: 12px; color: var(--on-variant); margin-top: 2px; }
+    .empty-row td { text-align: center; color: var(--on-variant); padding: 40px; font-size: 13px; cursor: default; }
+
+    /* ── BADGES ───────────────────────────────────────────────── */
+    .badge { display: inline-block; padding: 3px 9px; border-radius: var(--r-full); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .badge-ok   { background: var(--ok-bg);      color: var(--ok); }
+    .badge-warn { background: var(--warn-bg);     color: var(--warn); }
+    .badge-err  { background: var(--danger-bg);   color: var(--danger); }
+    .badge-grey { background: var(--surface-high); color: var(--on-variant); }
+
+    /* ── BUTTONS ──────────────────────────────────────────────── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--r); border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 700; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: var(--teal-dark); color: #fff; }
+    .btn-ghost   { background: var(--surface-low); color: var(--on-surface); border: 1.5px solid var(--border); }
+    .btn-danger  { background: var(--danger-bg); color: var(--danger); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: var(--r-sm); }
+    .actions-cell { display: flex; gap: 6px; align-items: center; }
+
+    /* ── BOOKINGS ─────────────────────────────────────────────── */
+    .attendee-row { display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--surface-low); }
+    .attendee-row:last-child { border-bottom:none; }
+    .avatar-sm { width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0; }
+    .user-search-result { display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer;border-radius:var(--r-sm);transition:background .1s; }
+    .user-search-result:hover { background:var(--surface-low); }
+
+    /* ── PANEL ────────────────────────────────────────────────── */
+    #panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; display: none; justify-content: flex-end; }
+    #panel-overlay.open { display: flex; }
+    #panel { width: min(1140px, 96vw); background: #fff; height: 100%; overflow-y: auto; box-shadow: -8px 0 40px rgba(0,0,0,.12); display: flex; flex-direction: column; transform: translateX(100%); transition: transform .25s ease; }
+    #panel-overlay.open #panel { transform: translateX(0); }
+    .panel-header { display: flex; align-items: center; gap: 12px; padding: 20px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .panel-header h3 { font-size: 16px; font-weight: 800; flex: 1; }
+    .panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    #panel .field { margin-bottom: 11px; }
+    #panel .section-divider { margin: 6px 0 14px; }
+    .panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; }
+
+    /* ── FORM ─────────────────────────────────────────────────── */
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 11px; font-weight: 700; color: var(--on-variant); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .field input, .field textarea, .field select { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--r-sm); font-family: inherit; font-size: 14px; outline: none; background: #fff; transition: border-color .2s; }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--teal-dark); }
+    .field textarea { min-height: 120px; resize: vertical; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field-row3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+    .chips-field { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip-opt { padding: 6px 14px; border-radius: var(--r-full); border: 1.5px solid var(--border); background: var(--surface-low); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--on-surface); transition: all .15s; user-select: none; }
+    .chip-opt.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+    .section-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0 20px; }
+    .field-hint { font-size: 11px; color: var(--on-variant); margin-top: 4px; }
+    .photo-thumb { position: relative; width: 80px; height: 80px; display: inline-block; }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--border); }
+    .photo-thumb .rm { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: var(--danger); color: #fff; border: none; cursor: pointer; font-size: 12px; line-height: 20px; text-align: center; }
+
+    /* ── CLASS CARDS ──────────────────────────────────────────── */
+    .class-card { background: #fff; border: 1px solid var(--border); border-radius: var(--r); padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: box-shadow .15s; }
+    .class-card:hover { box-shadow: 0 2px 12px rgba(0,106,98,.1); }
+    .class-card-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--teal-dark); flex-shrink: 0; }
+    .class-card-info { flex: 1; }
+    .class-card-info h4 { font-size: 13px; font-weight: 800; }
+    .class-card-info p { font-size: 12px; color: var(--on-variant); margin-top: 2px; }
+
+    /* ── FILTER CHIPS ─────────────────────────────────────────── */
+    .filter-chips { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+    .filter-chip { padding: 5px 14px; border-radius: var(--r-full); border: 1.5px solid var(--border); background: var(--surface-low); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .filter-chip.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+
+    /* ── INFO / WARN BOX ──────────────────────────────────────── */
+    .info-box { background: #e8f0fe; border: 1px solid #c5d8fc; border-radius: var(--r-sm); padding: 12px 16px; font-size: 12px; color: #1a3b8b; margin-bottom: 16px; line-height: 1.5; }
+    .warn-box { background: var(--warn-bg); border: 1px solid #ffcc80; border-radius: var(--r-sm); padding: 12px 16px; font-size: 12px; color: var(--warn); margin-bottom: 16px; line-height: 1.5; }
+
+    /* ── TOAST ────────────────────────────────────────────────── */
+    #toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1c1e; color: #fff; padding: 12px 24px; border-radius: var(--r-full); font-size: 13px; font-weight: 600; z-index: 999; transition: transform .25s ease; pointer-events: none; }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: var(--on-variant); font-size: 13px; }
+    .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--teal-dark); border-radius: 50%; animation: spin .7s linear infinite; margin-right: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MESSAGES ─────────────────────────────────────────────── */
+    .cnt { background: var(--warn); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: var(--r-full); margin-left: auto; }
+    .msg-layout { display: grid; grid-template-columns: 300px 1fr; background: #fff; border-radius: var(--r); border: 1px solid var(--border); overflow: hidden; min-height: 520px; }
+    .msg-list { border-right: 1px solid var(--border); overflow-y: auto; }
+    .msg-item { padding: 14px 16px; border-bottom: 1px solid var(--surface-low); cursor: pointer; transition: background .1s; }
+    .msg-item:hover { background: var(--surface-low); }
+    .msg-item.active { background: #e0f2f1; }
+    .msg-item.unread { background: #f5f9ff; }
+    .msg-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal-dark); flex-shrink: 0; margin-top: 3px; }
+    .msg-detail { display: flex; flex-direction: column; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+<!-- ── AUTH ──────────────────────────────────────────────────────── -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="assets/images/logo-mark.png" alt="MLC" onerror="this.style.display='none'">
+      <div>
+        <h1>My Little Circle</h1>
+        <p>Organiser Portal</p>
+      </div>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">Sign in</div>
+      <div class="auth-tab" onclick="switchAuthTab('register')">Create account</div>
+    </div>
+
+    <div id="auth-login" class="auth-form">
+      <button class="btn btn-ghost" style="justify-content:center;gap:10px" onclick="loginGoogle()">
+        <img src="https://www.google.com/favicon.ico" width="16" height="16" alt=""> Sign in with Google
+      </button>
+      <div style="display:flex;align-items:center;gap:10px;color:#bbc9c6;font-size:12px">
+        <hr style="flex:1;border-color:#e2e2e5"> or <hr style="flex:1;border-color:#e2e2e5">
+      </div>
+      <input type="email" id="login-email" placeholder="Email address" autocomplete="email">
+      <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+      <button class="btn btn-primary" style="justify-content:center" onclick="login()">Sign in</button>
+      <p class="auth-error" id="login-error"></p>
+    </div>
+
+    <div id="auth-register" class="auth-form" style="display:none">
+      <button class="btn btn-ghost" style="justify-content:center;gap:10px" onclick="loginGoogle()">
+        <img src="https://www.google.com/favicon.ico" width="16" height="16" alt=""> Continue with Google
+      </button>
+      <div style="display:flex;align-items:center;gap:10px;color:#bbc9c6;font-size:12px">
+        <hr style="flex:1;border-color:#e2e2e5"> or <hr style="flex:1;border-color:#e2e2e5">
+      </div>
+      <input type="text" id="reg-first" placeholder="Organisation name (e.g. Baby Sensory Cambridge)" autocomplete="organization">
+      <input type="email" id="reg-email" placeholder="Email address" autocomplete="email">
+      <input type="password" id="reg-password" placeholder="Password (min 8 chars)" autocomplete="new-password">
+      <button class="btn btn-primary" style="justify-content:center" onclick="register()">Create account</button>
+      <p class="auth-error" id="reg-error"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ── ONBOARDING ─────────────────────────────────────────────────── -->
+<div id="onboarding-screen">
+  <div class="ob-card">
+    <!-- Progress bar -->
+    <div class="ob-steps">
+      <div class="ob-step active" id="ob-s1"></div>
+      <div class="ob-step" id="ob-s2"></div>
+      <div class="ob-step" id="ob-s3"></div>
+      <div class="ob-step" id="ob-s4"></div>
+    </div>
+
+    <!-- Step 1: Logo -->
+    <div id="ob-step-1">
+      <div class="ob-label">Step 1 of 4</div>
+      <div class="ob-title">Add your logo</div>
+      <div class="ob-sub">A picture helps parents recognise your brand in the app.</div>
+      <div class="ob-logo-area">
+        <div class="ob-logo-preview" onclick="document.getElementById('ob-logo-input').click()">
+          <img id="ob-logo-img" src="">
+          <span class="ob-logo-placeholder" id="ob-logo-placeholder">🏫</span>
+        </div>
+        <div class="ob-logo-info">
+          <strong>Organisation logo</strong>
+          Square image works best. JPG or PNG.
+          <br>
+          <button class="ob-upload-btn" onclick="document.getElementById('ob-logo-input').click()">Choose photo</button>
+        </div>
+      </div>
+      <input type="file" id="ob-logo-input" class="ob-logo-input" accept="image/*" onchange="obPreviewLogo(this)">
+      <div class="ob-actions">
+        <span></span>
+        <div style="display:flex;align-items:center;gap:16px">
+          <span class="ob-skip" onclick="obNext()">Skip for now</span>
+          <button class="ob-btn-next" onclick="obNext()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: About -->
+    <div id="ob-step-2" style="display:none">
+      <div class="ob-label">Step 2 of 4</div>
+      <div class="ob-title">About your organisation</div>
+      <div class="ob-sub">Tell parents who you are and what makes your sessions special.</div>
+      <div class="ob-field">
+        <label>Short description *</label>
+        <textarea id="ob-bio" maxlength="200" placeholder="e.g. We run weekly baby sensory classes for 0–18 months in Cambridge, focused on gentle stimulation and parent wellbeing." oninput="document.getElementById('ob-bio-count').textContent=this.value.length+'/200'"></textarea>
+        <div class="ob-char"><span id="ob-bio-count">0</span>/200</div>
+      </div>
+      <div class="ob-field">
+        <label>Website <span style="font-weight:400;text-transform:none">(optional)</span></label>
+        <input type="url" id="ob-website" placeholder="https://…">
+      </div>
+      <div class="ob-field">
+        <label>Phone number <span style="font-weight:400;text-transform:none">(optional)</span></label>
+        <input type="tel" id="ob-phone" placeholder="+44 …">
+      </div>
+      <div class="ob-actions">
+        <button class="ob-btn-back" onclick="obBack()">← Back</button>
+        <button class="ob-btn-next" onclick="obNextStep2()">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Categories -->
+    <div id="ob-step-3" style="display:none">
+      <div class="ob-label">Step 3 of 4</div>
+      <div class="ob-title">What do you offer?</div>
+      <div class="ob-sub">Select all that apply — parents filter by category when searching.</div>
+      <div class="ob-chips" id="ob-cat-chips">
+        <span class="ob-chip" data-cat="Music">🎵 Music</span>
+        <span class="ob-chip" data-cat="Sport">🏃 Sport</span>
+        <span class="ob-chip" data-cat="Art">🎨 Art</span>
+        <span class="ob-chip" data-cat="Sensory">🌟 Sensory</span>
+        <span class="ob-chip" data-cat="Swimming">🏊 Swimming</span>
+        <span class="ob-chip" data-cat="Movement">🤸 Movement</span>
+        <span class="ob-chip" data-cat="Feeding &amp; Nutrition">🍼 Feeding &amp; Nutrition</span>
+        <span class="ob-chip" data-cat="Health">🩺 Health</span>
+        <span class="ob-chip" data-cat="Other">✨ Other</span>
+      </div>
+      <div class="ob-actions">
+        <button class="ob-btn-back" onclick="obBack()">← Back</button>
+        <div style="display:flex;align-items:center;gap:16px">
+          <span class="ob-skip" onclick="obNext()">Skip</span>
+          <button class="ob-btn-next" onclick="obNext()">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Location -->
+    <div id="ob-step-4" style="display:none">
+      <div class="ob-label">Step 4 of 4</div>
+      <div class="ob-title">Where are you based?</div>
+      <div class="ob-sub">Your main venue or the area you operate in. This helps parents find you on the map.</div>
+      <div class="ob-field">
+        <label>Address or area *</label>
+        <input type="text" id="ob-address" placeholder="e.g. Chesterton Community Centre, Cambridge, CB4">
+      </div>
+      <div class="ob-field">
+        <label>Instagram <span style="font-weight:400;text-transform:none">(optional)</span></label>
+        <input type="text" id="ob-instagram" placeholder="@youraccount">
+      </div>
+      <div class="ob-field">
+        <label>Facebook page <span style="font-weight:400;text-transform:none">(optional)</span></label>
+        <input type="text" id="ob-facebook" placeholder="facebook.com/yourpage">
+      </div>
+      <div class="ob-actions">
+        <button class="ob-btn-back" onclick="obBack()">← Back</button>
+        <button class="ob-btn-next" onclick="obSave()">Finish setup →</button>
+      </div>
+    </div>
+
+    <!-- Done -->
+    <div id="ob-step-done" style="display:none">
+      <div class="ob-done">
+        <div class="ob-done-icon">🎉</div>
+        <h2>You're all set!</h2>
+        <p>Your profile is ready. Now add your first class and start reaching local families.</p>
+        <button class="ob-btn-next" style="width:100%;justify-content:center;padding:15px" onclick="obFinish()">Add your first class →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ────────────────────────────────────────────────────────── -->
+<div id="app">
+  <header>
+    <img src="assets/images/logo-mark.png" alt="" onerror="this.style.display='none'">
+    <span class="brand">My Little Circle</span>
+    <span class="badge">ORGANISER</span>
+    <div class="spacer"></div>
+    <span class="user-name" id="user-name"></span>
+    <button class="btn btn-ghost btn-sm" style="margin-left:12px" onclick="logout()">Sign out</button>
+  </header>
+
+  <div class="body-layout">
+    <aside>
+      <button class="nav-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span>📊</span> Dashboard
+      </button>
+      <button class="nav-btn" data-tab="classes" onclick="switchTab('classes')">
+        <span>📚</span> My Classes
+      </button>
+      <button class="nav-btn" data-tab="messages" onclick="switchTab('messages')">
+        <span>💬</span> Messages
+        <span class="cnt" id="msg-cnt" style="display:none"></span>
+      </button>
+      <button class="nav-btn" data-tab="profile" onclick="switchTab('profile')">
+        <span>🏫</span> My Profile
+      </button>
+      <div style="flex:1"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openClassPanel()">+ New class</button>
+    </aside>
+
+    <main>
+      <!-- DASHBOARD -->
+      <section id="tab-dashboard">
+        <div class="section-top">
+          <h2>Dashboard</h2>
+          <button class="btn btn-primary" onclick="openClassPanel()">+ New class</button>
+        </div>
+
+        <div class="period-row">
+          <button class="period-chip active" data-period="week"   onclick="setPeriod('week')">This week</button>
+          <button class="period-chip"        data-period="month"  onclick="setPeriod('month')">This month</button>
+          <button class="period-chip"        data-period="ytd"    onclick="setPeriod('ytd')">YTD</button>
+          <button class="period-chip"        data-period="custom" onclick="setPeriod('custom')">Custom</button>
+          <div class="custom-dates" id="custom-dates" style="display:none">
+            <input type="date" id="period-from" onchange="renderDashboard()">
+            <span style="color:var(--on-variant);font-size:12px">to</span>
+            <input type="date" id="period-to" onchange="renderDashboard()">
+          </div>
+        </div>
+
+        <div class="stats-row" id="dash-stats"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:4px">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--teal-dark);margin-bottom:12px">Upcoming classes</div>
+            <div id="dash-upcoming"></div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:var(--teal-dark);margin-bottom:12px">Awaiting approval</div>
+            <div id="dash-pending"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MY CLASSES -->
+      <section id="tab-classes" style="display:none">
+        <div class="section-top">
+          <h2>My Classes</h2>
+          <button class="btn btn-primary" onclick="openClassPanel()">+ New class</button>
+        </div>
+        <div class="filter-chips">
+          <button class="filter-chip active" data-cf="all"      onclick="setClassesFilter('all')">All</button>
+          <button class="filter-chip"        data-cf="upcoming" onclick="setClassesFilter('upcoming')">Upcoming</button>
+          <button class="filter-chip"        data-cf="past"     onclick="setClassesFilter('past')">Past</button>
+          <button class="filter-chip"        data-cf="pending"  onclick="setClassesFilter('pending')">Pending</button>
+          <button class="filter-chip"        data-cf="rejected" onclick="setClassesFilter('rejected')">Rejected</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:30%">Name</th>
+              <th style="width:16%">Category</th>
+              <th style="width:20%">Schedule</th>
+              <th style="width:10%">Price</th>
+              <th style="width:12%">Status</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="classes-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+      <!-- MESSAGES -->
+      <section id="tab-messages" style="display:none">
+        <div class="section-top"><h2>Messages</h2></div>
+        <div class="stats-row" id="msg-stats"></div>
+        <div class="msg-layout">
+          <div class="msg-list" id="msg-list">
+            <div class="loading"><div class="spinner"></div>Loading…</div>
+          </div>
+          <div class="msg-detail" id="msg-detail" style="align-items:center;justify-content:center;color:var(--on-variant);font-size:13px">
+            Select a message
+          </div>
+        </div>
+      </section>
+
+      <!-- MY PROFILE -->
+      <section id="tab-profile" style="display:none">
+        <div class="section-top">
+          <h2>My Profile</h2>
+          <button class="btn btn-primary" id="profile-save-btn" onclick="saveProfile()">Save changes</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start">
+
+          <!-- Left: logo + identity -->
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px">Organisation</div>
+
+            <!-- Logo -->
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+              <div id="profile-logo-wrap" style="width:80px;height:80px;border-radius:18px;background:var(--surface-low);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;flex-shrink:0" onclick="document.getElementById('profile-logo-file').click()">
+                <img id="profile-logo-img" src="" style="width:100%;height:100%;object-fit:cover;display:none">
+                <span id="profile-logo-ph" style="font-size:28px">🏫</span>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:700;margin-bottom:4px">Organisation logo</div>
+                <div style="font-size:11px;color:var(--on-variant);margin-bottom:8px">Square image, JPG or PNG</div>
+                <button class="btn btn-ghost btn-sm" onclick="document.getElementById('profile-logo-file').click()">Change photo</button>
+              </div>
+              <input type="file" id="profile-logo-file" accept="image/*" style="display:none" onchange="profilePreviewLogo(this)">
+            </div>
+
+            <div class="field"><label>Organisation name</label>
+              <input id="profile-name" placeholder="e.g. Baby Sensory Cambridge">
+            </div>
+            <div class="field"><label>Short description</label>
+              <textarea id="profile-bio" placeholder="Tell parents what makes your sessions special…" style="min-height:90px;resize:vertical"></textarea>
+            </div>
+            <div class="field"><label>Website</label>
+              <input type="url" id="profile-website" placeholder="https://…">
+            </div>
+            <div class="field"><label>Phone</label>
+              <input type="tel" id="profile-phone" placeholder="+44 …">
+            </div>
+          </div>
+
+          <!-- Right: location + categories + social -->
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px">Location &amp; categories</div>
+            <div class="field"><label>Address or area</label>
+              <input id="profile-address" placeholder="e.g. Chesterton Community Centre, Cambridge" oninput="debounceAddressCheck()">
+              <div id="address-status" style="margin-top:6px;font-size:12px;font-weight:600;display:none"></div>
+            </div>
+
+            <div class="field">
+              <label>Categories</label>
+              <div class="chips-field" id="profile-cat-chips" style="margin-top:4px"></div>
+            </div>
+
+            <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin:18px 0 14px">Social</div>
+            <div class="field"><label>Instagram</label>
+              <input id="profile-instagram" placeholder="@youraccount">
+            </div>
+            <div class="field"><label>Facebook</label>
+              <input id="profile-facebook" placeholder="facebook.com/yourpage">
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- PANEL -->
+  <div id="panel-overlay" onclick="handleOverlayClick(event)">
+    <div id="panel">
+      <div class="panel-header">
+        <h3 id="panel-title">New class</h3>
+<button class="btn btn-ghost btn-sm" onclick="closePanel()">✕ Close</button>
+      </div>
+      <div class="panel-body" id="panel-body"></div>
+      <div class="panel-footer">
+        <button class="btn btn-primary" id="panel-save-btn" onclick="saveClass()">Submit for review</button>
+        <button class="btn btn-ghost" onclick="closePanel()">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="panel-delete-btn" style="margin-left:auto;display:none" onclick="deleteClass()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const { createClient } = window.supabase
+const fetchWithTimeout = (url, options) => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 15000)
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer))
+}
+const db = createClient(
+  'https://emzlwkgpmckxqehsefyq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtemx3a2dwbWNreHFlaHNlZnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2Mzg2MzksImV4cCI6MjA5NTIxNDYzOX0.cY-nSK7N8xdhSnZ6U40C3yychdzV-T7wtbGX4MyfxdI',
+  { global: { fetch: fetchWithTimeout } }
+)
+const MAPS_KEY = 'AIzaSyAJONwdkM8mZaolHU4w-2nNYAXp6j2PzH4'
+
+const SHIRES = [
+  ['bedfordshire','Bedfordshire'],['buckinghamshire','Buckinghamshire'],['cambridgeshire','Cambridgeshire'],
+  ['cheshire','Cheshire'],['cornwall','Cornwall'],['cumbria','Cumbria'],['derbyshire','Derbyshire'],
+  ['devon','Devon'],['dorset','Dorset'],['durham','Durham'],['east-sussex','East Sussex'],
+  ['essex','Essex'],['gloucestershire','Gloucestershire'],['greater-london','Greater London'],
+  ['greater-manchester','Greater Manchester'],['hampshire','Hampshire'],['hertfordshire','Hertfordshire'],
+  ['kent','Kent'],['lancashire','Lancashire'],['leicestershire','Leicestershire'],['lincolnshire','Lincolnshire'],
+  ['merseyside','Merseyside'],['norfolk','Norfolk'],['north-yorkshire','North Yorkshire'],
+  ['northamptonshire','Northamptonshire'],['northumberland','Northumberland'],['nottinghamshire','Nottinghamshire'],
+  ['oxfordshire','Oxfordshire'],['shropshire','Shropshire'],['somerset','Somerset'],
+  ['south-yorkshire','South Yorkshire'],['staffordshire','Staffordshire'],['suffolk','Suffolk'],
+  ['surrey','Surrey'],['tyne-and-wear','Tyne and Wear'],['warwickshire','Warwickshire'],
+  ['west-berkshire','West Berkshire'],['west-midlands','West Midlands'],['west-sussex','West Sussex'],
+  ['west-yorkshire','West Yorkshire'],['wiltshire','Wiltshire'],['worcestershire','Worcestershire'],
+  ['anglesey','Anglesey'],['carmarthenshire','Carmarthenshire'],['glamorgan','Glamorgan'],['pembrokeshire','Pembrokeshire'],
+  ['city-of-edinburgh','City of Edinburgh'],['glasgow-city','Glasgow City'],['highland','Highland'],
+  ['antrim','Antrim'],['down','Down'],['derry-and-londonderry','Derry and Londonderry'],
+]
+const CATEGORIES = ['Music','Sport','Art','Sensory','Swimming','Movement','Feeding & Nutrition','Health','Other']
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+
+let currentUser = null, userProfile = null
+let myClasses = []
+let activePeriod = 'week', classesFilter = 'all'
+let panelItem = null
+
+// ── AUTH ──────────────────────────────────────────────────────────
+async function init() {
+  const params = new URLSearchParams(window.location.search)
+  // Pre-select register tab when coming from the list-activity landing page
+  if (params.get('register') === '1') switchAuthTab('register')
+
+  // Preview mode: show onboarding straight away without requiring login
+  if (params.get('preview_onboarding') === '1') {
+    document.getElementById('auth-screen').style.display = 'none'
+    document.getElementById('onboarding-screen').style.display = 'flex'
+    // Disable save in preview mode
+    window._previewMode = true
+    return
+  }
+
+  const { data: { session } } = await db.auth.getSession()
+  if (session) await afterLogin(session.user)
+  db.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session && !currentUser) await afterLogin(session.user)
+  })
+}
+
+async function loginGoogle() {
+  await db.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/organiser' } })
+}
+
+async function login() {
+  const email = document.getElementById('login-email').value.trim()
+  const password = document.getElementById('login-password').value
+  const errEl = document.getElementById('login-error')
+  errEl.textContent = ''
+  if (!email || !password) return
+  const { data, error } = await db.auth.signInWithPassword({ email, password })
+  if (error) { errEl.textContent = error.message; return }
+  await afterLogin(data.user)
+}
+
+async function register() {
+  const orgName = document.getElementById('reg-first').value.trim()
+  const email   = document.getElementById('reg-email').value.trim()
+  const pass    = document.getElementById('reg-password').value
+  const errEl   = document.getElementById('reg-error')
+  errEl.className = 'auth-error'; errEl.textContent = ''
+  if (!orgName || !email || !pass) { errEl.textContent = 'Please fill in all required fields.'; return }
+  if (pass.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; return }
+  const { data, error } = await db.auth.signUp({ email, password: pass })
+  if (error) { errEl.textContent = error.message; return }
+  if (data.user) {
+    await db.from('profiles').upsert({ id: data.user.id, first_name: orgName, last_name: null })
+    errEl.className = 'auth-error auth-ok'
+    errEl.textContent = 'Account created! Check your email to confirm, then sign in.'
+  }
+}
+
+async function afterLogin(user) {
+  currentUser = user
+  const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single()
+  userProfile = profile
+  const name = profile?.first_name || user.email
+  document.getElementById('user-name').textContent = name
+  document.getElementById('auth-screen').style.display = 'none'
+
+  // Show onboarding if not yet completed
+  if (!profile?.organiser_onboarding_done) {
+    document.getElementById('onboarding-screen').style.display = 'flex'
+    return
+  }
+
+  document.getElementById('app').style.display = 'flex'
+  await Promise.all([loadClasses(), loadMessages()])
+  renderDashboard()
+}
+
+// ── ONBOARDING ────────────────────────────────────────────────────
+let obStep = 1
+let obLogoFile = null
+
+function obSetStep(n) {
+  obStep = n
+  const steps = ['ob-step-1','ob-step-2','ob-step-3','ob-step-4','ob-step-done']
+  steps.forEach((id, i) => {
+    document.getElementById(id).style.display = (i === n - 1) ? 'block' : 'none'
+  })
+  ;[1,2,3,4].forEach(i => {
+    const el = document.getElementById('ob-s' + i)
+    el.className = 'ob-step' + (i < n ? ' done' : i === n ? ' active' : '')
+  })
+}
+
+function obNext() { if (obStep < 5) obSetStep(obStep + 1) }
+function obBack() { if (obStep > 1) obSetStep(obStep - 1) }
+
+function obNextStep2() {
+  const bio = document.getElementById('ob-bio').value.trim()
+  if (!bio) { alert('Please add a short description of your organisation.'); return }
+  obNext()
+}
+
+function obPreviewLogo(input) {
+  if (!input.files[0]) return
+  obLogoFile = input.files[0]
+  const url = URL.createObjectURL(obLogoFile)
+  const img = document.getElementById('ob-logo-img')
+  img.src = url; img.style.display = 'block'
+  document.getElementById('ob-logo-placeholder').style.display = 'none'
+}
+
+document.querySelectorAll('.ob-chip').forEach(chip => {
+  chip.addEventListener('click', () => chip.classList.toggle('active'))
+})
+
+async function obSave() {
+  if (window._previewMode) { obSetStep(5); return } // skip saving in preview mode
+  const address = document.getElementById('ob-address').value.trim()
+  if (!address) { alert('Please enter your address or area.'); return }
+
+  const btn = document.querySelector('#ob-step-4 .ob-btn-next')
+  btn.textContent = 'Saving…'; btn.disabled = true
+
+  try {
+    let avatarUrl = userProfile?.avatar_url || null
+
+    // Upload logo if provided
+    if (obLogoFile) {
+      const ext  = obLogoFile.name.split('.').pop()
+      const path = `org-logos/${currentUser.id}.${ext}`
+      const { data: up, error: ue } = await db.storage
+        .from('avatars')
+        .upload(path, obLogoFile, { contentType: obLogoFile.type, upsert: true })
+      if (!ue) {
+        avatarUrl = db.storage.from('avatars').getPublicUrl(up.path).data.publicUrl
+      }
+    }
+
+    const selectedCats = [...document.querySelectorAll('.ob-chip.active')].map(c => c.dataset.cat)
+    await db.from('profiles').update({
+      avatar_url:                avatarUrl,
+      bio:                       document.getElementById('ob-bio').value.trim() || null,
+      website:                   document.getElementById('ob-website').value.trim() || null,
+      phone:                     document.getElementById('ob-phone').value.trim() || null,
+      categories:                selectedCats.length ? selectedCats : null,
+      address:                   address,
+      instagram:                 document.getElementById('ob-instagram').value.trim() || null,
+      facebook:                  document.getElementById('ob-facebook').value.trim() || null,
+      organiser_onboarding_done: true,
+    }).eq('id', currentUser.id)
+
+    userProfile = { ...userProfile, avatar_url: avatarUrl, organiser_onboarding_done: true }
+    obSetStep(5)
+  } catch (e) {
+    alert('Something went wrong. Please try again.')
+  } finally {
+    btn.textContent = 'Finish setup →'; btn.disabled = false
+  }
+}
+
+async function obFinish() {
+  document.getElementById('onboarding-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'flex'
+  await Promise.all([loadClasses(), loadMessages()])
+  renderDashboard()
+  // Open the new class panel straight away
+  openClassPanel()
+}
+
+async function logout() { await db.auth.signOut(); location.reload() }
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t, i) =>
+    t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1)))
+  document.getElementById('auth-login').style.display    = tab === 'login'    ? 'flex' : 'none'
+  document.getElementById('auth-register').style.display = tab === 'register' ? 'flex' : 'none'
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
+  document.querySelectorAll('section[id^="tab-"]').forEach(s => s.style.display = 'none')
+  document.getElementById(`tab-${tab}`).style.display = 'block'
+  if (tab === 'classes')  renderClassesTable()
+  if (tab === 'messages') renderMessages()
+  if (tab === 'profile')  renderProfileTab()
+}
+
+// ── MY PROFILE ────────────────────────────────────────────────────
+const PROFILE_CATS = ['Music','Sport','Art','Sensory','Swimming','Movement','Feeding & Nutrition','Health','Other']
+let profileLogoFile = null
+
+async function geocodeRaw(address) {
+  if (!address) return null
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 6000)
+    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address + ', UK')}&key=${MAPS_KEY}`, { signal: controller.signal })
+    clearTimeout(timer)
+    const json = await res.json()
+    return json.results?.[0] ? json.results[0].geometry.location : null
+  } catch { return null }
+}
+
+let _addrTimer = null
+function debounceAddressCheck() {
+  const el = document.getElementById('address-status')
+  if (el) { el.style.display = 'none' }
+  clearTimeout(_addrTimer)
+  const val = document.getElementById('profile-address')?.value.trim()
+  if (!val) return
+  el.style.display = 'block'
+  el.style.color = '#9eada9'
+  el.textContent = '⏳ Checking address…'
+  _addrTimer = setTimeout(async () => {
+    const geo = await geocodeRaw(val)
+    if (!document.getElementById('address-status')) return
+    if (geo) {
+      el.style.color = '#1b5e20'
+      el.textContent = '✓ Location recognised'
+    } else {
+      el.style.color = '#e65100'
+      el.textContent = '⚠ Address not recognised — parents may not find you on the map'
+    }
+  }, 800)
+}
+
+function renderProfileTab() {
+  const p = userProfile || {}
+
+  // Logo
+  const img = document.getElementById('profile-logo-img')
+  const ph  = document.getElementById('profile-logo-ph')
+  if (p.avatar_url) { img.src = p.avatar_url; img.style.display = 'block'; ph.style.display = 'none' }
+  else { img.style.display = 'none'; ph.style.display = 'block' }
+
+  document.getElementById('profile-name').value     = p.first_name  || ''
+  document.getElementById('profile-bio').value      = p.bio         || ''
+  document.getElementById('profile-website').value  = p.website     || ''
+  document.getElementById('profile-phone').value    = p.phone       || ''
+  document.getElementById('profile-address').value  = p.address     || ''
+  if (p.address) debounceAddressCheck()
+  document.getElementById('profile-instagram').value= p.instagram   || ''
+  document.getElementById('profile-facebook').value = p.facebook    || ''
+
+  // Category chips
+  const savedCats = p.categories || []
+  document.getElementById('profile-cat-chips').innerHTML = PROFILE_CATS.map(cat =>
+    `<span class="chip-opt ${savedCats.includes(cat) ? 'active' : ''}"
+      onclick="this.classList.toggle('active')">${cat}</span>`
+  ).join('')
+}
+
+function profilePreviewLogo(input) {
+  if (!input.files[0]) return
+  profileLogoFile = input.files[0]
+  const img = document.getElementById('profile-logo-img')
+  img.src = URL.createObjectURL(profileLogoFile)
+  img.style.display = 'block'
+  document.getElementById('profile-logo-ph').style.display = 'none'
+}
+
+async function saveProfile() {
+  const btn = document.getElementById('profile-save-btn')
+  btn.textContent = 'Saving…'; btn.disabled = true
+  try {
+    let avatarUrl = userProfile?.avatar_url || null
+    if (profileLogoFile) {
+      const ext  = profileLogoFile.name.split('.').pop()
+      const path = `org-logos/${currentUser.id}.${ext}`
+      const { data: up, error: ue } = await db.storage
+        .from('avatars').upload(path, profileLogoFile, { contentType: profileLogoFile.type, upsert: true })
+      if (!ue) avatarUrl = db.storage.from('avatars').getPublicUrl(up.path).data.publicUrl
+    }
+
+    const selectedCats = [...document.querySelectorAll('#profile-cat-chips .chip-opt.active')].map(c => c.textContent)
+    const newName = document.getElementById('profile-name').value.trim()
+
+    const updates = {
+      first_name: newName || userProfile?.first_name,
+      avatar_url: avatarUrl,
+      bio:        document.getElementById('profile-bio').value.trim() || null,
+      website:    document.getElementById('profile-website').value.trim() || null,
+      phone:      document.getElementById('profile-phone').value.trim() || null,
+      address:    document.getElementById('profile-address').value.trim() || null,
+      instagram:  document.getElementById('profile-instagram').value.trim() || null,
+      facebook:   document.getElementById('profile-facebook').value.trim() || null,
+      categories: selectedCats.length ? selectedCats : null,
+    }
+    const { error } = await db.from('profiles').update(updates).eq('id', currentUser.id)
+    if (error) { toast('Error: ' + error.message); return }
+
+    userProfile = { ...userProfile, ...updates }
+    document.getElementById('user-name').textContent = updates.first_name || currentUser.email
+    profileLogoFile = null
+    toast('Profile saved ✓')
+  } catch (e) {
+    toast('Error: ' + (e.message || 'Something went wrong'))
+  } finally {
+    btn.textContent = 'Save changes'; btn.disabled = false
+  }
+}
+
+// ── DATA ──────────────────────────────────────────────────────────
+async function loadClasses() {
+  const { data } = await db.from('classes')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+  myClasses = data || []
+  await refreshBookingCounts()
+}
+
+async function refreshBookingCounts() {
+  const ids = myClasses.filter(c => c.use_mlc_bookings).map(c => c.id)
+  if (!ids.length) return
+  const { data } = await db.from('class_bookings')
+    .select('class_id')
+    .in('class_id', ids)
+    .eq('status', 'confirmed')
+  const counts = {}
+  ;(data || []).forEach(b => { counts[b.class_id] = (counts[b.class_id] || 0) + 1 })
+  myClasses = myClasses.map(c => ({ ...c, booking_count: counts[c.id] ?? 0 }))
+}
+
+// ── PERIOD HELPERS ────────────────────────────────────────────────
+function getPeriodRange() {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  if (activePeriod === 'week') {
+    const from = new Date(today)
+    const day = today.getDay() || 7
+    from.setDate(today.getDate() - day + 1)
+    const to = new Date(from); to.setDate(from.getDate() + 6)
+    return { from, to }
+  }
+  if (activePeriod === 'month') {
+    return { from: new Date(today.getFullYear(), today.getMonth(), 1), to: new Date(today.getFullYear(), today.getMonth() + 1, 0) }
+  }
+  if (activePeriod === 'ytd') {
+    return { from: new Date(today.getFullYear(), 0, 1), to: today }
+  }
+  const fromVal = document.getElementById('period-from')?.value
+  const toVal   = document.getElementById('period-to')?.value
+  return {
+    from: fromVal ? new Date(fromVal) : new Date(today.getFullYear(), 0, 1),
+    to:   toVal   ? new Date(toVal)   : today,
+  }
+}
+
+function setPeriod(p) {
+  activePeriod = p
+  document.querySelectorAll('.period-chip').forEach(c => c.classList.toggle('active', c.dataset.period === p))
+  document.getElementById('custom-dates').style.display = p === 'custom' ? 'flex' : 'none'
+  renderDashboard()
+}
+
+function countSessionsInPeriod(cls, from, to) {
+  if (cls.event_type === 'one_off') {
+    const d = cls.start_date ? new Date(cls.start_date) : null
+    return d && d >= from && d <= to ? 1 : 0
+  }
+  const clsStart = cls.start_date ? new Date(cls.start_date) : from
+  const clsEnd   = cls.end_date   ? new Date(cls.end_date)   : to
+  const effFrom  = new Date(Math.max(from.getTime(), clsStart.getTime()))
+  const effTo    = new Date(Math.min(to.getTime(),   clsEnd.getTime()))
+  if (effFrom > effTo) return 0
+  const weeks = ((effTo - effFrom) / (1000 * 60 * 60 * 24) + 1) / 7
+  if (cls.recurrence === 'fortnightly') return Math.max(1, Math.round(weeks / 2))
+  if (cls.recurrence?.startsWith('monthly')) return Math.max(1, Math.round(weeks / 4))
+  return Math.max(1, Math.round(weeks))
+}
+
+function isUpcoming(c) {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  if (c.event_type === 'one_off') return c.start_date ? new Date(c.start_date) >= today : false
+  return !c.end_date || new Date(c.end_date) >= today
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────
+function renderDashboard() {
+  const { from, to } = getPeriodRange()
+  const approved = myClasses.filter(c => c.status === 'approved')
+  const pending  = myClasses.filter(c => c.status === 'pending')
+
+  let totalSessions = 0, totalRevenue = 0
+  approved.forEach(c => {
+    const n = countSessionsInPeriod(c, from, to)
+    totalSessions += n
+    totalRevenue  += n * (c.price || 0) * (c.max_capacity || 0)
+  })
+
+  const periodLabel = { week: 'this week', month: 'this month', ytd: 'year to date', custom: 'in period' }[activePeriod]
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value">${totalSessions}</div>
+      <div class="stat-label">Sessions ${periodLabel}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">£${Math.round(totalRevenue).toLocaleString('en-GB')}</div>
+      <div class="stat-label">Est. revenue ${periodLabel}</div>
+      <div class="stat-sub">price × capacity</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value ok">${approved.length}</div>
+      <div class="stat-label">Live classes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value ${pending.length > 0 ? 'warn' : ''}">${pending.length}</div>
+      <div class="stat-label">Pending review</div>
+    </div>
+  `
+
+  const upcoming = approved.filter(isUpcoming).slice(0, 5)
+  document.getElementById('dash-upcoming').innerHTML = upcoming.length
+    ? upcoming.map(c => {
+        const schedule = c.event_type === 'one_off'
+          ? (c.start_date ? new Date(c.start_date).toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'}) : '—')
+          : [c.day_of_week, c.time_start ? c.time_start.slice(0,5) : ''].filter(Boolean).join(' · ')
+        return `<div class="class-card" onclick="openClassPanel('${c.id}')">
+          <div class="class-card-dot"></div>
+          <div class="class-card-info">
+            <h4>${esc(c.name)}</h4>
+            <p>${esc(schedule)}${c.venue_name ? ' · ' + esc(c.venue_name) : ''}</p>
+          </div>
+          <span class="badge badge-ok">Live</span>
+        </div>`
+      }).join('')
+    : '<p style="font-size:12px;color:var(--on-variant)">No upcoming classes yet.</p>'
+
+  document.getElementById('dash-pending').innerHTML = pending.length
+    ? pending.map(c => `
+        <div class="class-card" onclick="openClassPanel('${c.id}')" style="border-color:#ffcc80;background:#fff8f0">
+          <div class="class-card-dot" style="background:var(--warn)"></div>
+          <div class="class-card-info">
+            <h4>${esc(c.name)}</h4>
+            <p>Submitted ${new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>
+          </div>
+          <span class="badge badge-warn">Pending</span>
+        </div>`).join('')
+    : '<p style="font-size:12px;color:var(--on-variant)">Nothing awaiting approval.</p>'
+}
+
+// ── MY CLASSES TABLE ──────────────────────────────────────────────
+function setClassesFilter(f) {
+  classesFilter = f
+  document.querySelectorAll('[data-cf]').forEach(c => c.classList.toggle('active', c.dataset.cf === f))
+  renderClassesTable()
+}
+
+function renderClassesTable() {
+  let list = [...myClasses]
+  if (classesFilter === 'upcoming') list = list.filter(c => c.status === 'approved' && isUpcoming(c))
+  else if (classesFilter === 'past')     list = list.filter(c => c.status === 'approved' && !isUpcoming(c))
+  else if (classesFilter === 'pending')  list = list.filter(c => c.status === 'pending')
+  else if (classesFilter === 'rejected') list = list.filter(c => c.status === 'rejected')
+
+  const tbody = document.getElementById('classes-tbody')
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No classes found</td></tr>'; return }
+  tbody.innerHTML = list.map(c => {
+    const badge = c.status === 'approved' ? 'badge-ok' : c.status === 'pending' ? 'badge-warn' : 'badge-err'
+    const label = c.status === 'approved' ? 'Live' : c.status === 'pending' ? 'Pending' : 'Rejected'
+    const schedule = c.event_type === 'one_off'
+      ? (c.start_date ? new Date(c.start_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—')
+      : [c.day_of_week, c.time_start ? c.time_start.slice(0,5) : ''].filter(Boolean).join(' · ')
+    const price = c.price != null ? `£${c.price}` : 'Free'
+    const canDelete = c.status === 'pending' || c.status === 'rejected'
+    return `<tr onclick="openClassPanel('${c.id}')">
+      <td><div class="td-name">${esc(c.name)}</div>
+          <div class="td-meta">${esc(c.venue_name||'')}</div></td>
+      <td><span class="td-meta">${esc(c.category||'—')}</span></td>
+      <td><div class="td-meta">${esc(schedule)}</div></td>
+      <td><div class="td-meta">${price}</div></td>
+      <td><span class="badge ${badge}">${label}</span></td>
+      <td><div class="actions-cell" onclick="event.stopPropagation()">
+        ${c.use_mlc_bookings ? `<button class="btn btn-primary btn-sm" onclick="openBookingsPanel('${c.id}')">👥 ${c.booking_count != null ? c.booking_count + ' ' : ''}Bookings</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="openClassPanel('${c.id}')">Edit</button>
+        ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="confirmDelete(event,'${c.id}')">Delete</button>` : ''}
+      </div></td>
+    </tr>`
+  }).join('')
+}
+
+// ── CLASS PANEL ───────────────────────────────────────────────────
+function openClassPanel(id) {
+  panelItem = id ? myClasses.find(c => c.id === id) : null
+  const isLive = panelItem?.status === 'approved'
+  document.getElementById('panel-title').textContent = panelItem ? `Edit: ${panelItem.name}` : 'Submit new class'
+  document.getElementById('panel-save-btn').textContent = isLive ? 'Save changes' : 'Submit for review'
+  document.getElementById('panel-delete-btn').style.display =
+    (panelItem?.status === 'pending' || panelItem?.status === 'rejected') ? 'inline-flex' : 'none'
+  document.getElementById('panel-body').innerHTML = buildClassForm(panelItem)
+  rpInit(panelItem || {})
+  rpRender()
+  document.getElementById('f-price')?.addEventListener('input', updateStripeVisibility)
+  const overlay = document.getElementById('panel-overlay')
+  overlay.style.display = 'flex'
+  requestAnimationFrame(() => overlay.classList.add('open'))
+}
+
+function buildClassForm(c) {
+  const v = c || {}
+  const eventType = v.event_type || 'recurring'
+  const shireSel = SHIRES.map(([id, name]) =>
+    `<option value="${id}" ${v.shire_id === id ? 'selected' : ''}>${name}</option>`).join('')
+  const catChips = CATEGORIES.map(cat =>
+    `<span class="chip-opt ${v.category === cat ? 'active' : ''}" onclick="toggleChip(this,'category','${cat}',true)">${cat}</span>`).join('')
+  const dayChips = DAYS.map(d =>
+    `<span class="chip-opt ${v.day_of_week === d ? 'active' : ''}" onclick="toggleChip(this,'day_of_week','${d}',true)">${d.slice(0,3)}</span>`).join('')
+  const recOpts = ['weekly','fortnightly','monthly-1','monthly-2','monthly-3','monthly-4'].map(r =>
+    `<span class="chip-opt ${v.recurrence === r ? 'active' : ''}" onclick="toggleChip(this,'recurrence','${r}',true)">${r}</span>`).join('')
+  const bookingChips = [
+    ['drop_in',          'Drop-in'],
+    ['booking_required', 'Booking required'],
+  ].map(([b, label]) =>
+    `<span class="chip-opt ${v.booking_type === b ? 'active' : ''}" onclick="toggleChip(this,'booking_type','${b}',true);onBookingTypeChange()">${label}</span>`
+  ).join('')
+  const organiserName = v.organiser || userProfile?.first_name || ''
+
+  return `
+    ${v.status === 'approved'
+      ? '<div class="info-box" style="margin-bottom:20px">This class is live. Changes are saved immediately.</div>'
+      : v.status === 'rejected'
+      ? '<div class="warn-box" style="margin-bottom:20px">This class was rejected. Edit and resubmit for another review.</div>'
+      : v.id
+      ? '<div class="warn-box" style="margin-bottom:20px">Awaiting admin approval. You can edit while pending.</div>'
+      : '<div class="info-box" style="margin-bottom:20px">Once submitted, an admin will review your class before it goes live. This usually takes 1–2 days.</div>'}
+
+    <input type="hidden" id="f-id"           value="${v.id||''}">
+    <input type="hidden" id="f-category"     value="${v.category||''}">
+    <input type="hidden" id="f-day_of_week"  value="${v.day_of_week||''}">
+    <input type="hidden" id="f-recurrence"   value="${v.recurrence||''}">
+    <input type="hidden" id="f-event_type"   value="${eventType}">
+    <input type="hidden" id="f-booking_type" value="${v.booking_type||''}">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 40px;align-items:start">
+
+      <!-- LEFT COLUMN -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">About</div>
+        <div class="field"><label>Class name *</label><input id="f-name" value="${esc(v.name||'')}" placeholder="e.g. Baby Sensory"></div>
+        <div class="field"><label>Category</label><div class="chips-field">${catChips}</div></div>
+        <div class="field"><label>Description</label><textarea id="f-description" placeholder="Tell parents what to expect…" style="min-height:100px">${esc(v.description||'')}</textarea></div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 10px">Schedule</div>
+        <div class="field"><label>Event type</label>
+          <div class="chips-field">
+            <span class="chip-opt ${eventType==='recurring'?'active':''}" data-et="recurring" onclick="rpSetEventType('recurring')">Recurring</span>
+            <span class="chip-opt ${eventType==='one_off'?'active':''}" data-et="one_off" onclick="rpSetEventType('one_off')">One-off</span>
+          </div>
+        </div>
+
+        <div id="class-one-off-section"${eventType!=='one_off'?' style="display:none"':''}>
+          <div class="field"><label>Date *</label><input type="date" id="f-one-off-date" value="${eventType==='one_off'?(v.start_date||''):''}"></div>
+        </div>
+        <div id="class-start-section"${eventType==='one_off'?' style="display:none"':''}>
+          <div class="field"><label>Start date <span style="font-weight:400;text-transform:none">(for preview)</span></label>
+            <input type="date" id="f-start_date" value="${v.start_date||''}" onchange="rpRender()">
+          </div>
+        </div>
+        <div id="rp-container"></div>
+
+        <div class="field-row" style="margin-top:10px">
+          <div class="field"><label>Time start</label><input type="time" id="f-time_start" value="${v.time_start||''}"></div>
+          <div class="field"><label>Time end</label><input type="time" id="f-time_end" value="${v.time_end||''}"></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 10px">Pricing &amp; access</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+          <div class="field"><label>Min age (mo)</label><input type="number" id="f-age_min_months" value="${v.age_min_months??''}" placeholder="0" min="0"></div>
+          <div class="field"><label>Max age (mo)</label><input type="number" id="f-age_max_months" value="${v.age_max_months??''}" placeholder="60" min="0"></div>
+          <div class="field"><label>Price (£)</label><input type="number" id="f-price" value="${v.price??''}" placeholder="free" step="0.01" min="0"></div>
+          <div class="field"><label>Capacity</label><input type="number" id="f-max_capacity" value="${v.max_capacity??''}" placeholder="—" min="1"></div>
+        </div>
+        <div class="field"><label>Attendance</label><div class="chips-field">${bookingChips}</div></div>
+
+        <div id="mlc-bookings-section" style="${v.booking_type === 'booking_required' ? '' : 'display:none'}">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;background:var(--surface-low);border-radius:var(--r-sm)">
+            <input type="checkbox" id="f-use_mlc_bookings" ${v.use_mlc_bookings ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--teal-dark);margin-top:2px;flex-shrink:0">
+            <div>
+              <div style="font-size:13px;font-weight:700">Track bookings with MLC</div>
+              <div style="font-size:11px;color:var(--on-variant);margin-top:2px">See who's coming and send group messages to attendees</div>
+            </div>
+          </label>
+
+          <div id="stripe-section" style="${v.booking_type === 'booking_required' && v.price > 0 ? 'margin-top:8px' : 'display:none;margin-top:8px'}">
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px 12px;background:#f0f9f8;border-radius:var(--r-sm);border:1px solid #c8e6e4">
+              <input type="checkbox" id="f-stripe_enabled" ${v.stripe_enabled ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--teal-dark);margin-top:2px;flex-shrink:0">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--teal-dark)">💳 Take payments via Stripe</div>
+                <div style="font-size:11px;color:var(--on-variant);margin-top:2px">Parents pay online when they book — you receive funds via Stripe. Not yet active; enable when ready to go live.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Location</div>
+        <div class="field"><label>Venue name *</label><input id="f-venue_name" value="${esc(v.venue_name||'')}" placeholder="e.g. St John's Community Centre"></div>
+        <div class="field"><label>Street</label><input id="f-street" value="${esc(v.street||'')}" placeholder="e.g. 10 High Street"></div>
+        <div class="field-row">
+          <div class="field"><label>City</label><input id="f-city" value="${esc(v.city||'')}" placeholder="Cambridge"></div>
+          <div class="field"><label>Postcode</label><input id="f-postcode" value="${esc(v.postcode||'')}"></div>
+        </div>
+        ${v.lat ? `<div style="display:inline-flex;align-items:center;gap:6px;background:var(--ok-bg);color:var(--ok);font-size:12px;font-weight:600;padding:5px 12px;border-radius:var(--r-full);margin-bottom:8px">📍 Location confirmed — will re-verify on save</div>` : `<div style="font-size:11px;color:var(--on-variant);margin-bottom:8px">Location will be verified automatically when you save.</div>`}
+        <input type="hidden" id="f-shire_id" value="${v.shire_id||''}">
+
+        <div style="font-size:11px;font-weight:700;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 10px">Media &amp; links</div>
+        <div class="field"><label>Photo</label>
+          <div id="class-photo-preview" style="margin-bottom:6px">${v.photo_url ? `<div class="photo-thumb"><img src="${v.photo_url}"><button class="rm" onclick="clearPhoto()">✕</button></div>` : ''}</div>
+          <input type="hidden" id="f-photo_url" value="${v.photo_url||''}">
+          <input type="file" id="f-photo-file" accept="image/*" onchange="previewPhoto(this)">
+          <p class="field-hint">Landscape, 800×500px min.</p>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Website</label><input type="url" id="f-website" value="${esc(v.website||'')}" placeholder="https://…"></div>
+          <div class="field"><label>Your name</label><input id="f-organiser" value="${esc(organiserName)}" placeholder="Full name"></div>
+        </div>
+      </div>
+
+    </div>
+  `
+}
+
+// setEventType replaced by rpSetEventType in recurrence-picker.js
+
+function previewPhoto(input) {
+  if (!input.files[0]) return
+  document.getElementById('class-photo-preview').innerHTML =
+    `<div class="photo-thumb"><img src="${URL.createObjectURL(input.files[0])}"><button class="rm" onclick="clearPhoto()">✕</button></div>`
+}
+function clearPhoto() {
+  document.getElementById('f-photo_url').value = ''
+  document.getElementById('class-photo-preview').innerHTML = ''
+  document.getElementById('f-photo-file').value = ''
+}
+
+function matchShire(name) {
+  if (!name) return null
+  const n = name.toLowerCase().trim()
+  return SHIRES.find(([id, label]) =>
+    label.toLowerCase() === n ||
+    id === n.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  )?.[0] || null
+}
+
+async function autoGeocode(street, city, postcode) {
+  const parts = [street, city, postcode].filter(Boolean).join(', ')
+  if (!parts) return null
+  try {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 6000)
+  const res  = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(parts + ', UK')}&key=${MAPS_KEY}`, { signal: controller.signal })
+  clearTimeout(timeout)
+  const json = await res.json()
+  if (!json.results?.[0]) return null
+  const result     = json.results[0]
+  const loc        = result.geometry.location
+  const components = result.address_components
+  const level2     = components.find(c => c.types.includes('administrative_area_level_2'))?.long_name
+  const level1     = components.find(c => c.types.includes('administrative_area_level_1'))?.long_name
+  const shire_id   = matchShire(level2) || matchShire(level1) || null
+  return { lat: loc.lat, lng: loc.lng, shire_id }
+  } catch { return null }
+}
+
+async function saveClass() {
+  const name  = document.getElementById('f-name').value.trim()
+  const venue = document.getElementById('f-venue_name').value.trim()
+  if (!name)  { toast('Class name is required'); return }
+  if (!venue) { toast('Venue name is required'); return }
+
+  const btn = document.getElementById('panel-save-btn')
+  btn.textContent = 'Saving…'; btn.disabled = true
+
+  try {
+    let photoUrl = document.getElementById('f-photo_url').value
+    const file = document.getElementById('f-photo-file').files[0]
+    if (file) {
+      const { data: up, error: ue } = await db.storage.from('class-images')
+        .upload(`${Date.now()}.${file.name.split('.').pop()}`, file, { contentType: file.type })
+      if (ue) { toast('Photo upload failed'); return }
+      photoUrl = db.storage.from('class-images').getPublicUrl(up.path).data.publicUrl
+    }
+
+    const id    = document.getElementById('f-id').value
+    const existing = id ? myClasses.find(c => c.id === id) : null
+    const street   = document.getElementById('f-street').value.trim()
+    const city     = document.getElementById('f-city').value.trim()
+    const postcode = document.getElementById('f-postcode').value.trim().toUpperCase()
+
+    // Auto-geocode
+    let lat = null, lng = null, shire_id = null
+    const hasAddress = [street, city, postcode].some(Boolean)
+    if (hasAddress) {
+      btn.textContent = 'Finding location…'
+      const geo = await autoGeocode(street, city, postcode)
+      if (!geo) {
+        toast('Address not found — please enter a valid address')
+        return
+      }
+      lat = geo.lat; lng = geo.lng; shire_id = geo.shire_id
+      btn.textContent = 'Saving…'
+    }
+
+    const payload = {
+      name,
+      description:      document.getElementById('f-description').value.trim() || null,
+      category:         document.getElementById('f-category').value || null,
+      ...rpGetValues(),
+      time_start:       document.getElementById('f-time_start').value || null,
+      time_end:         document.getElementById('f-time_end').value || null,
+      age_min_months:   numOrNull('f-age_min_months'),
+      age_max_months:   numOrNull('f-age_max_months'),
+      price:            numOrNull('f-price'),
+      max_capacity:     numOrNull('f-max_capacity'),
+      booking_type:     document.getElementById('f-booking_type').value || null,
+      use_mlc_bookings: document.getElementById('f-use_mlc_bookings')?.checked || false,
+      stripe_enabled:   document.getElementById('f-stripe_enabled')?.checked || false,
+      venue_name:       venue,
+      street:           street || null,
+      city:             city || null,
+      postcode:         postcode || null,
+      address:          [street, city, postcode].filter(Boolean).join(', ') || null,
+      lat, lng, shire_id,
+      photo_url:        photoUrl || null,
+      website:          document.getElementById('f-website').value.trim() || null,
+      organiser:        document.getElementById('f-organiser').value.trim() || null,
+      user_id:          currentUser.id,
+      status:           existing?.status === 'approved' ? 'approved' : 'pending',
+    }
+    if (id) payload.id = id
+
+    const { data, error } = await db.from('classes').upsert(payload).select().single()
+    if (error) { toast('Error: ' + error.message); return }
+    myClasses = id ? myClasses.map(c => c.id === id ? data : c) : [data, ...myClasses]
+    renderDashboard()
+    renderClassesTable()
+    closePanel()
+    toast(existing?.status === 'approved' ? 'Saved ✓' : 'Submitted for review ✓')
+  } catch (e) {
+    toast('Save failed: ' + (e?.message ?? 'please try again'))
+  } finally {
+    resetBtn()
+  }
+}
+
+async function confirmDelete(e, id) {
+  e.stopPropagation()
+  const cls = myClasses.find(c => c.id === id)
+  if (!cls || !confirm(`Delete "${cls.name}"?`)) return
+  await db.from('classes').delete().eq('id', id).eq('user_id', currentUser.id)
+  myClasses = myClasses.filter(c => c.id !== id)
+  renderClassesTable(); renderDashboard()
+  toast('Deleted')
+}
+
+async function deleteClass() {
+  if (!panelItem || !confirm(`Delete "${panelItem.name}"?`)) return
+  await db.from('classes').delete().eq('id', panelItem.id).eq('user_id', currentUser.id)
+  myClasses = myClasses.filter(c => c.id !== panelItem.id)
+  renderClassesTable(); renderDashboard()
+  closePanel(); toast('Deleted')
+}
+
+// ── MESSAGES (uses same conversations/messages tables as the app) ──
+let conversations = [], selectedConvId = null, convMessages = []
+let realtimeChannel = null
+
+async function loadMessages() {
+  const uid = currentUser.id
+  const { data: convData } = await db.from('conversations')
+    .select(`id, user1_id, user2_id, last_message_at,
+      user1:chat_users!conversations_user1_id_fkey(id, display_name, avatar_color),
+      user2:chat_users!conversations_user2_id_fkey(id, display_name, avatar_color)`)
+    .or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
+    .order('last_message_at', { ascending: false })
+
+  if (!convData?.length) { conversations = []; updateMsgBadge(); return }
+
+  const convIds = convData.map(c => c.id)
+  const { data: unreadMsgs } = await db.from('messages')
+    .select('conversation_id')
+    .in('conversation_id', convIds)
+    .neq('sender_id', uid)
+    .is('read_at', null)
+
+  const unreadMap = {}
+  ;(unreadMsgs || []).forEach(m => { unreadMap[m.conversation_id] = (unreadMap[m.conversation_id] || 0) + 1 })
+
+  conversations = convData.map(c => ({
+    ...c,
+    other_user: c.user1_id === uid ? c.user2 : c.user1,
+    unread_count: unreadMap[c.id] || 0,
+  }))
+  updateMsgBadge()
+}
+
+function updateMsgBadge() {
+  const unread = conversations.reduce((s, c) => s + (c.unread_count || 0), 0)
+  const cnt = document.getElementById('msg-cnt')
+  if (cnt) { cnt.textContent = unread; cnt.style.display = unread > 0 ? 'inline' : 'none' }
+}
+
+function renderMessages() {
+  const totalUnread = conversations.reduce((s, c) => s + (c.unread_count || 0), 0)
+  document.getElementById('msg-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${conversations.length}</div><div class="stat-label">Conversations</div></div>
+    <div class="stat-card"><div class="stat-value ${totalUnread > 0 ? 'warn' : ''}">${totalUnread}</div><div class="stat-label">Unread</div></div>
+  `
+  const list = document.getElementById('msg-list')
+  if (!conversations.length) {
+    list.innerHTML = '<div style="padding:48px;text-align:center;color:var(--on-variant);font-size:13px">No messages yet</div>'
+    const det = document.getElementById('msg-detail')
+    det.style.cssText = 'display:flex;align-items:center;justify-content:center;color:var(--on-variant);font-size:13px'
+    det.textContent = 'No conversations yet'
+    return
+  }
+  list.innerHTML = conversations.map(conv => {
+    const other    = conv.other_user
+    const isActive = conv.id === selectedConvId
+    const hasUnread = conv.unread_count > 0
+    const date     = conv.last_message_at ? formatMsgTime(conv.last_message_at) : ''
+    const initials = other?.display_name ? other.display_name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?'
+    return `<div class="msg-item ${hasUnread?'unread':''} ${isActive?'active':''}" onclick="openConversation('${conv.id}')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:38px;height:38px;border-radius:50%;background:${other?.avatar_color||'#9395d3'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <div style="font-size:13px;font-weight:${hasUnread?'800':'600'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(other?.display_name||'Unknown')}</div>
+            <div style="font-size:11px;color:var(--on-variant);flex-shrink:0">${date}</div>
+          </div>
+          ${hasUnread ? `<span style="background:var(--teal-dark);color:#fff;font-size:10px;font-weight:700;padding:1px 8px;border-radius:99px;margin-top:3px;display:inline-block">${conv.unread_count} new</span>` : ''}
+        </div>
+      </div>
+    </div>`
+  }).join('')
+
+  if (selectedConvId) renderThread()
+  else {
+    const det = document.getElementById('msg-detail')
+    det.style.cssText = 'display:flex;align-items:center;justify-content:center;color:var(--on-variant);font-size:13px'
+    det.textContent = 'Select a conversation'
+  }
+}
+
+async function openConversation(convId) {
+  selectedConvId = convId
+  const { data } = await db.from('messages')
+    .select('*')
+    .eq('conversation_id', convId)
+    .order('created_at', { ascending: true })
+  convMessages = data || []
+
+  await db.from('messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('conversation_id', convId)
+    .neq('sender_id', currentUser.id)
+    .is('read_at', null)
+
+  conversations = conversations.map(c => c.id === convId ? { ...c, unread_count: 0 } : c)
+  updateMsgBadge()
+
+  if (realtimeChannel) db.removeChannel(realtimeChannel)
+  realtimeChannel = db.channel(`conv:${convId}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` },
+      async payload => {
+        const msg = payload.new
+        if (msg.sender_id !== currentUser.id) {
+          convMessages = [...convMessages, msg]
+          await db.from('messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id)
+          renderThread()
+        }
+      })
+    .subscribe()
+
+  renderMessages()
+}
+
+function renderThread() {
+  const conv = conversations.find(c => c.id === selectedConvId)
+  if (!conv) return
+  const other   = conv.other_user
+  const initials = other?.display_name ? other.display_name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?'
+  const det = document.getElementById('msg-detail')
+  det.style.cssText = 'display:flex;flex-direction:column;overflow:hidden'
+
+  const bubblesHtml = convMessages.length
+    ? convMessages.map(m => {
+        const isMine = m.sender_id === currentUser.id
+        const time   = new Date(m.created_at).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
+        return `<div style="display:flex;flex-direction:column;align-items:${isMine?'flex-end':'flex-start'}">
+          <div style="max-width:72%;background:${isMine?'var(--teal-dark)':'var(--surface-low)'};color:${isMine?'#fff':'var(--on-surface)'};padding:10px 14px;border-radius:${isMine?'16px 16px 4px 16px':'16px 16px 16px 4px'};font-size:14px;line-height:1.55;word-break:break-word;white-space:pre-wrap">${esc(m.content)}</div>
+          <div style="font-size:10px;color:var(--on-variant);margin-top:3px;padding:0 4px">${time}</div>
+        </div>`
+      }).join('')
+    : '<div style="text-align:center;color:var(--on-variant);font-size:12px;padding:20px">No messages yet</div>'
+
+  det.innerHTML = `
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div style="width:36px;height:36px;border-radius:50%;background:${other?.avatar_color||'#9395d3'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700">${initials}</div>
+      <div style="font-weight:800;font-size:15px">${esc(other?.display_name||'Unknown')}</div>
+    </div>
+    <div id="msg-thread" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px">${bubblesHtml}</div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0">
+      <textarea id="reply-text" rows="1" style="flex:1;min-height:42px;max-height:100px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:14px;outline:none;resize:none;transition:border-color .2s" placeholder="Write a message…" onfocus="this.style.borderColor='var(--teal-dark)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage('${selectedConvId}')}"></textarea>
+      <button class="btn btn-primary" style="width:auto;padding:0 18px;align-self:flex-end;height:42px" onclick="sendMessage('${selectedConvId}')">Send</button>
+    </div>
+  `
+  const thread = document.getElementById('msg-thread')
+  if (thread) thread.scrollTop = thread.scrollHeight
+}
+
+async function sendMessage(convId) {
+  const ta = document.getElementById('reply-text')
+  const content = ta?.value.trim()
+  if (!content) return
+  ta.value = ''
+
+  const { error } = await db.from('messages').insert({ conversation_id: convId, sender_id: currentUser.id, content })
+  if (error) { toast('Error: ' + error.message); return }
+  await db.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', convId)
+
+  const { data } = await db.from('messages').select('*').eq('conversation_id', convId).order('created_at', { ascending: true })
+  convMessages = data || []
+  renderThread()
+}
+
+function formatMsgTime(iso) {
+  const d = new Date(iso), now = new Date()
+  const diff = Math.floor((now - d) / 86400000)
+  if (diff === 0) return d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
+  if (diff === 1) return 'Yesterday'
+  if (diff < 7)  return d.toLocaleDateString('en-GB', { weekday:'short' })
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' })
+}
+
+// ── BOOKING TYPE TOGGLE ───────────────────────────────────────────
+function onBookingTypeChange() {
+  const isBooking = document.getElementById('f-booking_type').value === 'booking_required'
+  const section = document.getElementById('mlc-bookings-section')
+  if (!section) return
+  section.style.display = isBooking ? '' : 'none'
+  if (!isBooking) {
+    const cb = document.getElementById('f-use_mlc_bookings')
+    if (cb) cb.checked = false
+    const stripeCb = document.getElementById('f-stripe_enabled')
+    if (stripeCb) stripeCb.checked = false
+  }
+  updateStripeVisibility()
+}
+
+function updateStripeVisibility() {
+  const isBooking = document.getElementById('f-booking_type')?.value === 'booking_required'
+  const price = parseFloat(document.getElementById('f-price')?.value) || 0
+  const stripeSection = document.getElementById('stripe-section')
+  if (stripeSection) {
+    stripeSection.style.display = isBooking && price > 0 ? '' : 'none'
+    if (!(isBooking && price > 0)) {
+      const cb = document.getElementById('f-stripe_enabled')
+      if (cb) cb.checked = false
+    }
+  }
+}
+
+// ── BOOKINGS PANEL ────────────────────────────────────────────────
+async function openBookingsPanel(classId) {
+  const cls = myClasses.find(c => c.id === classId)
+  panelItem = cls
+  document.getElementById('panel-title').textContent = `Bookings — ${cls.name}`
+  document.getElementById('panel-save-btn').style.display = 'none'
+  document.getElementById('panel-delete-btn').style.display = 'none'
+  document.getElementById('panel-body').innerHTML =
+    '<div class="loading"><div class="spinner"></div>Loading…</div>'
+  const overlay = document.getElementById('panel-overlay')
+  overlay.style.display = 'flex'
+  requestAnimationFrame(() => overlay.classList.add('open'))
+  await renderBookingsPanel(classId)
+}
+
+async function renderBookingsPanel(classId) {
+  const cls = myClasses.find(c => c.id === classId)
+
+  // Fetch bookings without the profiles join (no FK set up), then fetch profiles separately
+  const { data: bookings } = await db.from('class_bookings')
+    .select('id, status, notes, created_at, user_id')
+    .eq('class_id', classId)
+    .order('created_at', { ascending: true })
+
+  const confirmed = (bookings || []).filter(b => b.status === 'confirmed')
+  const cancelled = (bookings || []).filter(b => b.status === 'cancelled')
+
+  // Fetch profiles for all bookers in one query
+  const userIds = [...new Set((bookings || []).map(b => b.user_id))]
+  let profileMap = {}
+  if (userIds.length) {
+    const { data: profiles } = await db.from('profiles')
+      .select('id, first_name, last_name, avatar_color')
+      .in('id', userIds)
+    ;(profiles || []).forEach(p => { profileMap[p.id] = p })
+  }
+
+  const attendeeRows = confirmed.length
+    ? confirmed.map(b => {
+        const p = profileMap[b.user_id] || {}
+        const name = [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Unknown'
+        const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+        const date = new Date(b.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short' })
+        return `<div class="attendee-row">
+          <div class="avatar-sm" style="background:${p.avatar_color||'#9395d3'}">${initials}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:700">${esc(name)}</div>
+            <div style="font-size:11px;color:var(--on-variant)">Booked ${date}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="cancelBooking('${b.id}','${classId}')">Cancel</button>
+        </div>`
+      }).join('')
+    : '<p style="font-size:13px;color:var(--on-variant);padding:16px 0">No confirmed bookings yet.</p>'
+
+  document.getElementById('panel-body').innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <div style="font-size:22px;font-weight:800;color:var(--teal-dark)">${confirmed.length}</div>
+        <div style="font-size:13px;color:var(--on-variant)">confirmed${cls?.max_capacity ? ` / ${cls.max_capacity} capacity` : ''}</div>
+        ${cancelled.length ? `<div style="font-size:12px;color:var(--on-variant);margin-left:auto">${cancelled.length} cancelled</div>` : ''}
+      </div>
+      <div>${attendeeRows}</div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
+
+    <div style="margin-bottom:24px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">Add a booking</div>
+      <div style="position:relative">
+        <input id="booking-search" type="text" placeholder="Search by name…"
+          style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:14px;outline:none"
+          oninput="searchUsersForBooking(this.value,'${classId}')"
+          onfocus="this.style.borderColor='var(--teal-dark)'" onblur="this.style.borderColor='var(--border)'">
+        <div id="booking-search-results" style="margin-top:4px;border:1px solid var(--border);border-radius:var(--r-sm);background:#fff;display:none;max-height:200px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:0 0 20px">
+
+    <div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px">Message all attendees</div>
+      <div style="font-size:12px;color:var(--on-variant);margin-bottom:10px">Sends an individual message to each of the ${confirmed.length} confirmed attendees.</div>
+      <textarea id="group-msg-text" placeholder="Hi everyone! Just a reminder that…"
+        style="width:100%;min-height:100px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:14px;outline:none;resize:vertical"
+        onfocus="this.style.borderColor='var(--teal-dark)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      <button id="group-msg-btn" class="btn btn-primary" style="margin-top:10px;width:100%;justify-content:center"
+        onclick="sendGroupMessage('${classId}')" ${confirmed.length === 0 ? 'disabled' : ''}>
+        Send to ${confirmed.length} attendee${confirmed.length === 1 ? '' : 's'}
+      </button>
+    </div>
+  `
+}
+
+async function cancelBooking(bookingId, classId) {
+  if (!confirm('Cancel this booking?')) return
+  const { error } = await db.from('class_bookings').update({ status: 'cancelled' }).eq('id', bookingId)
+  if (error) { toast('Error: ' + error.message); return }
+  await refreshBookingCounts()
+  renderClassesTable()
+  await renderBookingsPanel(classId)
+  toast('Booking cancelled')
+}
+
+let bookingSearchTimer = null
+async function searchUsersForBooking(query, classId) {
+  clearTimeout(bookingSearchTimer)
+  const resultsEl = document.getElementById('booking-search-results')
+  if (query.length < 2) { resultsEl.style.display = 'none'; return }
+  bookingSearchTimer = setTimeout(async () => {
+    const { data } = await db.from('profiles')
+      .select('id, first_name, last_name, avatar_color')
+      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
+      .limit(8)
+    if (!data?.length) { resultsEl.innerHTML = '<p style="padding:12px;font-size:13px;color:var(--on-variant)">No users found</p>'; resultsEl.style.display = 'block'; return }
+    resultsEl.style.display = 'block'
+    resultsEl.innerHTML = data.map(u => {
+      const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || 'No name'
+      const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+      return `<div class="user-search-result" onclick="addBooking('${u.id}','${classId}','${esc(name)}')">
+        <div class="avatar-sm" style="background:${u.avatar_color||'#9395d3'}">${initials}</div>
+        <span style="font-size:13px;font-weight:600">${esc(name)}</span>
+      </div>`
+    }).join('')
+  }, 300)
+}
+
+async function addBooking(userId, classId, userName) {
+  const { error } = await db.from('class_bookings').upsert(
+    { class_id: classId, user_id: userId, status: 'confirmed' },
+    { onConflict: 'class_id,user_id' }
+  )
+  if (error) { toast('Error: ' + error.message); return }
+  document.getElementById('booking-search').value = ''
+  document.getElementById('booking-search-results').style.display = 'none'
+  await refreshBookingCounts()
+  renderClassesTable()
+  await renderBookingsPanel(classId)
+  toast(`${userName} booked ✓`)
+}
+
+async function sendGroupMessage(classId) {
+  const text = document.getElementById('group-msg-text')?.value.trim()
+  if (!text) { toast('Write a message first'); return }
+  const btn = document.getElementById('group-msg-btn')
+  btn.textContent = 'Sending…'; btn.disabled = true
+
+  const { data: bookings } = await db.from('class_bookings')
+    .select('user_id')
+    .eq('class_id', classId)
+    .eq('status', 'confirmed')
+
+  const uid = currentUser.id
+  let sent = 0
+  for (const b of (bookings || [])) {
+    if (b.user_id === uid) continue
+    const otherId = b.user_id
+    const { data: existing } = await db.from('conversations')
+      .select('id')
+      .or(`and(user1_id.eq.${uid},user2_id.eq.${otherId}),and(user1_id.eq.${otherId},user2_id.eq.${uid})`)
+      .maybeSingle()
+    let convId = existing?.id
+    if (!convId) {
+      const { data: nc } = await db.from('conversations')
+        .insert({ user1_id: uid, user2_id: otherId })
+        .select('id').single()
+      convId = nc?.id
+    }
+    if (convId) {
+      await db.from('messages').insert({ conversation_id: convId, sender_id: uid, content: text })
+      await db.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', convId)
+      sent++
+    }
+  }
+
+  btn.textContent = `Send to ${bookings?.length || 0} attendee${bookings?.length === 1 ? '' : 's'}`
+  btn.disabled = false
+  document.getElementById('group-msg-text').value = ''
+  toast(`Message sent to ${sent} attendee${sent === 1 ? '' : 's'} ✓`)
+}
+
+// ── PANEL HELPERS ─────────────────────────────────────────────────
+function closePanel() {
+  const overlay = document.getElementById('panel-overlay')
+  overlay.classList.remove('open')
+  setTimeout(() => {
+    overlay.style.display = 'none'; panelItem = null
+    const saveBtn = document.getElementById('panel-save-btn')
+    saveBtn.style.display = ''; saveBtn.textContent = 'Submit for review'; saveBtn.disabled = false
+    document.getElementById('panel-delete-btn').style.display = 'none'
+  }, 260)
+}
+function handleOverlayClick(e) { if (e.target === e.currentTarget) closePanel() }
+
+function toggleChip(el, field, value, single) {
+  const hidden = document.getElementById(`f-${field}`)
+  if (single) {
+    document.querySelectorAll(`[onclick*="toggleChip(this,'${field}'"]`).forEach(c => c.classList.remove('active'))
+    if (hidden.value === value) { el.classList.remove('active'); hidden.value = '' }
+    else { el.classList.add('active'); hidden.value = value }
+  }
+}
+
+function resetBtn() {
+  const btn = document.getElementById('panel-save-btn')
+  btn.textContent = panelItem?.status === 'approved' ? 'Save changes' : 'Submit for review'
+  btn.disabled = false
+}
+
+function numOrNull(id) {
+  const v = document.getElementById(id)?.value
+  return v === '' || v == null ? null : parseFloat(v)
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast')
+  el.textContent = msg; el.classList.add('show')
+  setTimeout(() => el.classList.remove('show'), 2800)
+}
+
+document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') login() })
+
+init()
+</script>
+</body>
+</html>

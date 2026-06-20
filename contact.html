@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Organiser — My Little Circle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --teal-dark: #006a62; --border: #e2e2e5; --surface-low: #f3f3f6; --on-variant: #6c7a77; --danger: #ba1a1a; --ok: #1b5e20; --r: 12px; --r-sm: 8px; --r-full: 9999px; }
+    body { font-family: 'Manrope', sans-serif; background: linear-gradient(135deg, #e0f2f1 0%, #f9f9fc 60%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 20px; padding: 40px; width: 460px; box-shadow: 0 8px 40px rgba(0,106,98,.12); }
+    .back { font-size: 12px; color: var(--teal-dark); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 24px; }
+    .back:hover { opacity: .7; }
+    .class-pill { display: inline-flex; align-items: center; gap: 6px; background: #e0f2f1; border-radius: var(--r-full); padding: 6px 14px; font-size: 12px; font-weight: 700; color: var(--teal-dark); margin-bottom: 20px; }
+    h1 { font-size: 20px; font-weight: 800; color: var(--teal-dark); margin-bottom: 4px; }
+    p.sub { font-size: 13px; color: var(--on-variant); margin-bottom: 24px; line-height: 1.5; }
+    .auth-tabs { display: flex; border-bottom: 1.5px solid var(--border); margin-bottom: 20px; }
+    .auth-tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: 700; color: var(--on-variant); cursor: pointer; border-bottom: 2.5px solid transparent; margin-bottom: -1.5px; transition: all .15s; }
+    .auth-tab.active { color: var(--teal-dark); border-bottom-color: var(--teal-dark); }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; font-weight: 700; color: var(--on-variant); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+    .field input, .field textarea { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--r-sm); font-family: inherit; font-size: 14px; outline: none; transition: border-color .2s; }
+    .field input:focus, .field textarea:focus { border-color: var(--teal-dark); }
+    .field textarea { min-height: 120px; resize: vertical; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn { width: 100%; padding: 12px; border-radius: var(--r); border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; background: var(--teal-dark); color: #fff; transition: opacity .15s; }
+    .btn:hover { opacity: .88; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-google { background: #fff; color: #1a1c1e; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-google:hover { background: var(--surface-low); }
+    .divider { display: flex; align-items: center; gap: 10px; color: #bbc9c6; font-size: 12px; margin: 12px 0; }
+    .divider hr { flex: 1; border-color: var(--border); }
+    .error { color: var(--danger); font-size: 12px; margin-top: 8px; min-height: 16px; }
+    .success { text-align: center; padding: 16px 0; }
+    .success .icon { font-size: 52px; margin-bottom: 16px; }
+    .success h2 { font-size: 18px; font-weight: 800; color: var(--teal-dark); margin-bottom: 8px; }
+    .success p { font-size: 13px; color: var(--on-variant); line-height: 1.6; }
+    .pay-banner { background: #e0f2f1; border: 1px solid #c8e6e4; border-radius: var(--r); padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .pay-banner-text { flex: 1; font-size: 13px; color: var(--teal-dark); line-height: 1.5; }
+    .pay-banner-price { font-size: 20px; font-weight: 800; color: var(--teal-dark); white-space: nowrap; }
+    .btn-pay { width: 100%; padding: 13px; border-radius: var(--r); border: none; cursor: pointer; font-family: inherit; font-size: 15px; font-weight: 800; background: var(--teal-dark); color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; margin-bottom: 10px; }
+    .btn-pay:hover { opacity: .88; }
+    .btn-pay:disabled { opacity: .5; cursor: not-allowed; }
+    .divider-or { display: flex; align-items: center; gap: 10px; color: #bbc9c6; font-size: 12px; margin: 12px 0; }
+    .divider-or hr { flex: 1; border-color: var(--border); }
+  </style>
+</head>
+<body>
+<div class="card">
+  <a class="back" href="javascript:history.back()">← Back</a>
+
+  <!-- Step 1: sign in (if not already logged in) -->
+  <div id="auth-view">
+    <div id="class-pill-auth" class="class-pill" style="display:none">💬 <span id="class-name-auth"></span></div>
+    <h1>Message the organiser</h1>
+    <p class="sub">Sign in to your My Little Circle account to send a message.</p>
+
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchTab('login')">Sign in</div>
+      <div class="auth-tab" onclick="switchTab('register')">Create account</div>
+    </div>
+
+    <div id="login-form">
+      <button class="btn btn-google" onclick="loginGoogle()" style="margin-bottom:4px">
+        <img src="https://www.google.com/favicon.ico" width="16" height="16" alt=""> Continue with Google
+      </button>
+      <div class="divider"><hr> or <hr></div>
+      <div class="field"><label>Email</label><input type="email" id="l-email" autocomplete="email"></div>
+      <div class="field"><label>Password</label><input type="password" id="l-password" autocomplete="current-password"></div>
+      <button class="btn" onclick="login()">Sign in</button>
+      <p class="error" id="login-error"></p>
+    </div>
+
+    <div id="register-form" style="display:none">
+      <button class="btn btn-google" onclick="loginGoogle()" style="margin-bottom:4px">
+        <img src="https://www.google.com/favicon.ico" width="16" height="16" alt=""> Continue with Google
+      </button>
+      <div class="divider"><hr> or <hr></div>
+      <div class="field-row">
+        <div class="field"><label>First name</label><input type="text" id="r-first" autocomplete="given-name"></div>
+        <div class="field"><label>Last name</label><input type="text" id="r-last" autocomplete="family-name"></div>
+      </div>
+      <div class="field"><label>Email</label><input type="email" id="r-email" autocomplete="email"></div>
+      <div class="field"><label>Password</label><input type="password" id="r-password" autocomplete="new-password"></div>
+      <button class="btn" onclick="register()">Create account</button>
+      <p class="error" id="register-error"></p>
+    </div>
+  </div>
+
+  <!-- Step 2: action (shown after login) -->
+  <div id="message-view" style="display:none">
+    <div id="class-pill-msg" class="class-pill" style="display:none">💬 <span id="class-name-msg"></span></div>
+
+    <!-- Book & Pay section (only for paid classes with stripe_enabled) -->
+    <div id="pay-section" style="display:none">
+      <h1>Book your spot</h1>
+      <p class="sub">Pay securely online and you're confirmed straight away.</p>
+      <div class="pay-banner">
+        <span style="font-size:24px">🎟️</span>
+        <div class="pay-banner-text">One session · <span id="pay-class-name"></span></div>
+        <div class="pay-banner-price" id="pay-price"></div>
+      </div>
+      <button class="btn-pay" id="pay-btn" onclick="checkout()">💳 Book &amp; Pay</button>
+      <p class="error" id="pay-error"></p>
+      <div class="divider-or"><hr>or send a message instead<hr></div>
+    </div>
+
+    <h1 id="msg-heading">Message the organiser</h1>
+    <p class="sub" id="msg-sub">Your message goes directly to them. They'll reply in the app or on the web.</p>
+    <div class="field">
+      <label>Message *</label>
+      <textarea id="f-message" placeholder="Hi, I'd like to find out more about…"></textarea>
+    </div>
+    <button class="btn" onclick="send()">Send message</button>
+    <p class="error" id="send-error"></p>
+  </div>
+
+  <!-- Step 3: success -->
+  <div id="success-view" class="success" style="display:none">
+    <div class="icon">✉️</div>
+    <h2>Message sent!</h2>
+    <p>The organiser will reply soon.<br>You can see the conversation in the MLC app.</p>
+  </div>
+</div>
+
+<script>
+const { createClient } = window.supabase
+const SUPABASE_URL  = 'https://emzlwkgpmckxqehsefyq.supabase.co'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtemx3a2dwbWNreHFlaHNlZnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2Mzg2MzksImV4cCI6MjA5NTIxNDYzOX0.cY-nSK7N8xdhSnZ6U40C3yychdzV-T7wtbGX4MyfxdI'
+const db = createClient(SUPABASE_URL, SUPABASE_ANON)
+
+const params  = new URLSearchParams(window.location.search)
+const classId = params.get('class')
+let organiserUserId = null
+let classData = null
+
+async function init() {
+  if (classId) {
+    const { data } = await db.from('classes')
+      .select('name, venue_name, user_id, price, stripe_enabled')
+      .eq('id', classId).single()
+    if (data) {
+      classData = data
+      organiserUserId = data.user_id
+      document.getElementById('class-name-auth').textContent = data.name
+      document.getElementById('class-name-msg').textContent  = data.name
+      document.getElementById('class-pill-auth').style.display = 'inline-flex'
+      document.getElementById('class-pill-msg').style.display  = 'inline-flex'
+    }
+  }
+
+  const { data: { session } } = await db.auth.getSession()
+  if (session) showMessageView()
+
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) showMessageView()
+  })
+}
+
+function showMessageView() {
+  document.getElementById('auth-view').style.display    = 'none'
+  document.getElementById('message-view').style.display = 'block'
+
+  // Show pay section when class has Stripe enabled and a price
+  if (classData?.stripe_enabled && classData?.price > 0) {
+    document.getElementById('pay-section').style.display = 'block'
+    document.getElementById('pay-class-name').textContent = classData.name
+    document.getElementById('pay-price').textContent = `£${classData.price.toFixed(2)}`
+    // Soften the message section heading since pay is primary
+    document.getElementById('msg-heading').textContent = 'Or message the organiser'
+    document.getElementById('msg-sub').textContent     = 'Have a question before booking? Send them a message.'
+  }
+}
+
+async function checkout() {
+  const btn  = document.getElementById('pay-btn')
+  const errEl = document.getElementById('pay-error')
+  errEl.textContent = ''
+  btn.textContent = 'Redirecting to payment…'; btn.disabled = true
+
+  const { data: { session } } = await db.auth.getSession()
+  if (!session) { errEl.textContent = 'Not signed in.'; btn.textContent = '💳 Book & Pay'; btn.disabled = false; return }
+
+  try {
+    const res  = await fetch(`${SUPABASE_URL}/functions/v1/create-checkout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: SUPABASE_ANON,
+      },
+      body: JSON.stringify({ class_id: classId }),
+    })
+    const json = await res.json()
+    if (!res.ok || !json.url) {
+      errEl.textContent = json.error ?? 'Could not start payment. Please try again.'
+      btn.textContent = '💳 Book & Pay'; btn.disabled = false
+      return
+    }
+    window.location.href = json.url
+  } catch {
+    errEl.textContent = 'Network error. Please try again.'
+    btn.textContent = '💳 Book & Pay'; btn.disabled = false
+  }
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t, i) =>
+    t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1)))
+  document.getElementById('login-form').style.display    = tab === 'login'    ? 'block' : 'none'
+  document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none'
+}
+
+async function loginGoogle() {
+  await db.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } })
+}
+
+async function login() {
+  const email    = document.getElementById('l-email').value.trim()
+  const password = document.getElementById('l-password').value
+  const errEl    = document.getElementById('login-error')
+  errEl.textContent = ''
+  if (!email || !password) return
+  const { error } = await db.auth.signInWithPassword({ email, password })
+  if (error) errEl.textContent = error.message
+}
+
+async function register() {
+  const first    = document.getElementById('r-first').value.trim()
+  const last     = document.getElementById('r-last').value.trim()
+  const email    = document.getElementById('r-email').value.trim()
+  const password = document.getElementById('r-password').value
+  const errEl    = document.getElementById('register-error')
+  errEl.textContent = ''
+  if (!first || !email || !password) { errEl.textContent = 'Please fill in all fields.'; return }
+  if (password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; return }
+  const { data, error } = await db.auth.signUp({ email, password })
+  if (error) { errEl.textContent = error.message; return }
+  if (data.user) {
+    await db.from('profiles').upsert({ id: data.user.id, first_name: first, last_name: last })
+    await db.from('chat_users').upsert({
+      id: data.user.id,
+      display_name: [first, last].filter(Boolean).join(' '),
+      avatar_color: '#9395d3',
+      shire_id: 'cambridgeshire',
+    }, { onConflict: 'id' })
+  }
+}
+
+async function send() {
+  const content = document.getElementById('f-message').value.trim()
+  const errEl   = document.getElementById('send-error')
+  errEl.textContent = ''
+  if (!content) { errEl.textContent = 'Please write a message.'; return }
+  if (!organiserUserId) { errEl.textContent = 'Missing class info — please go back and try again.'; return }
+
+  const btn = document.querySelector('#message-view .btn')
+  btn.textContent = 'Sending…'; btn.disabled = true
+
+  const { data: { session } } = await db.auth.getSession()
+  const senderId = session?.user?.id
+  if (!senderId) { errEl.textContent = 'Not signed in.'; btn.textContent = 'Send message'; btn.disabled = false; return }
+
+  // Find or create conversation
+  const { data: existing } = await db.from('conversations')
+    .select('id')
+    .or(`and(user1_id.eq.${senderId},user2_id.eq.${organiserUserId}),and(user1_id.eq.${organiserUserId},user2_id.eq.${senderId})`)
+    .maybeSingle()
+
+  let convId = existing?.id
+  if (!convId) {
+    const { data: newConv, error } = await db.from('conversations')
+      .insert({ user1_id: senderId, user2_id: organiserUserId })
+      .select('id').single()
+    if (error) { errEl.textContent = error.message; btn.textContent = 'Send message'; btn.disabled = false; return }
+    convId = newConv.id
+  }
+
+  const { error: msgErr } = await db.from('messages').insert({ conversation_id: convId, sender_id: senderId, content })
+  if (msgErr) { errEl.textContent = msgErr.message; btn.textContent = 'Send message'; btn.disabled = false; return }
+
+  await db.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', convId)
+
+  document.getElementById('message-view').style.display = 'none'
+  document.getElementById('success-view').style.display = 'block'
+}
+
+document.getElementById('l-password').addEventListener('keydown', e => { if (e.key === 'Enter') login() })
+
+init()
+</script>
+</body>
+</html>

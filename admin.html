@@ -1,0 +1,2430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — My Little Circle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/rrule@2.7.2/dist/es5/rrule.min.js"></script>
+  <script>if (typeof RRule === 'undefined' && typeof rrule !== 'undefined') { window.RRule = rrule.RRule }</script>
+  <script src="recurrence-picker.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --teal: #00a99d; --teal-dark: #006a62; --lavender: #9395d3;
+      --surface: #f9f9fc; --surface-low: #f3f3f6; --surface-high: #e2e2e5;
+      --on-surface: #1a1c1e; --on-variant: #6c7a77;
+      --danger: #ba1a1a; --danger-bg: #ffdad6;
+      --warn-bg: #fff3e0; --warn: #e65100;
+      --ok-bg: #e6f4ea; --ok: #1b5e20;
+      --border: #e2e2e5;
+      --r: 12px; --r-sm: 8px; --r-full: 9999px;
+    }
+    html, body { height: 100%; font-family: 'Manrope', sans-serif; color: var(--on-surface); background: var(--surface); font-size: 14px; }
+
+    /* ── LOGIN ─────────────────────────────────────────────── */
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #e0f2f1 0%, #f9f9fc 60%);
+    }
+    .login-card {
+      background: #fff; border-radius: 20px; padding: 48px 40px;
+      width: 380px; box-shadow: 0 8px 40px rgba(0,106,98,.12);
+      display: flex; flex-direction: column; gap: 16px; align-items: center;
+    }
+    .login-card img { width: 56px; height: 56px; border-radius: 14px; margin-bottom: 4px; }
+    .login-card h1 { font-size: 22px; font-weight: 800; color: var(--teal-dark); }
+    .login-card p.sub { font-size: 13px; color: var(--on-variant); margin-top: -8px; }
+    .login-card input {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--r);
+      font-family: inherit; font-size: 14px; outline: none; transition: border-color .2s;
+    }
+    .login-card input:focus { border-color: var(--teal-dark); }
+    .btn-google { background: #fff; color: #1a1c1e; border: 1.5px solid var(--border); font-weight: 700; }
+    .btn-google:hover { background: var(--surface-low); }
+    #login-error { color: var(--danger); font-size: 13px; text-align: center; min-height: 18px; }
+
+    /* ── LAYOUT ─────────────────────────────────────────────── */
+    #app { display: none; height: 100vh; flex-direction: column; }
+    header {
+      height: 56px; background: #fff; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; padding: 0 24px; flex-shrink: 0;
+    }
+    header img { width: 28px; height: 28px; border-radius: 7px; }
+    header .brand { font-weight: 800; color: var(--teal-dark); font-size: 15px; }
+    header .badge { background: var(--teal-dark); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-full); }
+    header .spacer { flex: 1; }
+    header .user-email { font-size: 12px; color: var(--on-variant); }
+    .body-layout { display: flex; flex: 1; overflow: hidden; }
+    aside {
+      width: 210px; background: #fff; border-right: 1px solid var(--border);
+      padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;
+    }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm);
+      border: none; background: none; cursor: pointer; font-family: inherit; font-size: 13px;
+      font-weight: 600; color: var(--on-variant); width: 100%; text-align: left; transition: background .15s;
+    }
+    .nav-btn:hover { background: var(--surface-low); }
+    .nav-btn.active { background: #e0f2f1; color: var(--teal-dark); }
+    .nav-btn .cnt { margin-left: auto; background: var(--warn); color: #fff; font-size: 10px;
+      font-weight: 700; padding: 1px 6px; border-radius: var(--r-full); }
+    main { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* ── SECTION HEADER ─────────────────────────────────────── */
+    .section-top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .section-top h2 { font-size: 18px; font-weight: 800; color: var(--teal-dark); flex: 1; }
+    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .search-input {
+      padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--r);
+      font-family: inherit; font-size: 13px; outline: none; width: 220px;
+    }
+    .search-input:focus { border-color: var(--teal-dark); }
+    .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-chip {
+      padding: 5px 14px; border-radius: var(--r-full); border: 1.5px solid var(--border);
+      background: var(--surface-low); font-family: inherit; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all .15s;
+    }
+    .filter-chip.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+
+    /* ── TABLE ─────────────────────────────────────────────── */
+    .table-wrap { background: #fff; border-radius: var(--r); border: 1px solid var(--border); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 10px 14px; background: var(--surface-low); font-size: 11px; font-weight: 700;
+      color: var(--on-variant); text-transform: uppercase; letter-spacing: .5px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--surface-low); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f7fffe; }
+    td { padding: 10px 14px; vertical-align: middle; }
+    .td-name { font-weight: 700; font-size: 13px; }
+    .td-meta { font-size: 12px; color: var(--on-variant); margin-top: 2px; }
+    .empty-row td { text-align: center; color: var(--on-variant); padding: 40px; font-size: 13px; }
+
+    /* ── BADGES ─────────────────────────────────────────────── */
+    .badge { display: inline-block; padding: 3px 9px; border-radius: var(--r-full); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .badge-ok   { background: var(--ok-bg);   color: var(--ok); }
+    .badge-warn { background: var(--warn-bg); color: var(--warn); }
+    .badge-err  { background: var(--danger-bg); color: var(--danger); }
+    .badge-grey { background: var(--surface-high); color: var(--on-variant); }
+    .badge-blue { background: #e8f0fe; color: #1a3b8b; }
+
+    /* ── ACTION BUTTONS ─────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+      border-radius: var(--r); border: none; cursor: pointer; font-family: inherit;
+      font-size: 13px; font-weight: 700; transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: var(--teal-dark); color: #fff; }
+    .btn-ghost   { background: var(--surface-low); color: var(--on-surface); border: 1.5px solid var(--border); }
+    .btn-danger  { background: var(--danger-bg); color: var(--danger); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: var(--r-sm); }
+    .btn-ok { background: var(--ok-bg); color: var(--ok); }
+    .btn-warn { background: var(--warn-bg); color: var(--warn); }
+    .actions-cell { display: flex; gap: 6px; align-items: center; }
+
+    /* ── PANEL ─────────────────────────────────────────────── */
+    #panel-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200;
+      display: none; justify-content: flex-end;
+    }
+    #panel-overlay.open { display: flex; }
+    #panel {
+      width: 980px; max-width: 95vw; background: #fff; height: 100%; overflow-y: auto;
+      box-shadow: -8px 0 40px rgba(0,0,0,.12); display: flex; flex-direction: column;
+      transform: translateX(100%); transition: transform .25s ease;
+    }
+    #panel-overlay.open #panel { transform: translateX(0); }
+    .panel-header {
+      display: flex; align-items: center; gap: 12px; padding: 20px 24px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .panel-header h3 { font-size: 16px; font-weight: 800; flex: 1; }
+    .panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 0; }
+    .panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; }
+    #panel .field { margin-bottom: 11px; }
+    #panel .section-divider { margin: 6px 0 14px; }
+    .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+    .grid5 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+
+    /* ── FORM ELEMENTS ─────────────────────────────────────── */
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 11px; font-weight: 700; color: var(--on-variant);
+      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .field input, .field textarea, .field select {
+      width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      font-family: inherit; font-size: 14px; outline: none; background: #fff; transition: border-color .2s;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--teal-dark); }
+    .field textarea { min-height: 80px; resize: vertical; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field-row3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+    .chips-field { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip-opt {
+      padding: 6px 14px; border-radius: var(--r-full); border: 1.5px solid var(--border);
+      background: var(--surface-low); cursor: pointer; font-size: 12px; font-weight: 600;
+      color: var(--on-surface); transition: all .15s; user-select: none;
+    }
+    .chip-opt.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+    .chip-opt.active-warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+    .chip-opt.active-err  { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .chip-opt.active-ok   { background: var(--ok); border-color: var(--ok); color: #fff; }
+    .section-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0 20px; }
+    .field-hint { font-size: 11px; color: var(--on-variant); margin-top: 4px; }
+    .photo-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .photo-thumb { position: relative; width: 80px; height: 80px; }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--r-sm); border: 1px solid var(--border); }
+    .photo-thumb .rm { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%;
+      background: var(--danger); color: #fff; border: none; cursor: pointer; font-size: 12px; line-height: 20px; text-align: center; }
+
+    /* ── SCORE PICKER ───────────────────────────────────────── */
+    .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .score-row { display: flex; align-items: center; gap: 8px; }
+    .score-row span { font-size: 12px; font-weight: 600; color: var(--on-variant); width: 80px; flex-shrink: 0; }
+    .score-dots { display: flex; gap: 4px; }
+    .score-dot {
+      width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+      background: var(--surface-low); cursor: pointer; font-size: 11px; font-weight: 700;
+      color: var(--on-variant); display: flex; align-items: center; justify-content: center; transition: all .15s;
+    }
+    .score-dot.active { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+    .score-dot:hover:not(.active) { border-color: var(--teal-dark); }
+
+    /* ── TAGS ─────────────────────────────────────────────── */
+    .tags-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-cb { display: none; }
+    .tag-label {
+      padding: 5px 12px; border-radius: var(--r-full); border: 1.5px solid var(--border);
+      background: var(--surface-low); cursor: pointer; font-size: 12px; font-weight: 600;
+      color: var(--on-surface); transition: all .15s;
+    }
+    .tag-cb:checked + .tag-label { background: var(--teal-dark); border-color: var(--teal-dark); color: #fff; }
+
+    /* ── USERS TABLE ─────────────────────────────────────── */
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex;
+      align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
+      color: #fff; flex-shrink: 0; }
+    .user-cell { display: flex; align-items: center; gap: 10px; }
+    .toggle-switch { position: relative; width: 40px; height: 22px; cursor: pointer; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: var(--surface-high); border-radius: var(--r-full); transition: .2s; }
+    .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%; transition: .2s; }
+    input:checked + .slider { background: var(--teal-dark); }
+    input:checked + .slider::before { transform: translateX(18px); }
+
+    /* ── TOAST ─────────────────────────────────────────────── */
+    #toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1a1c1e; color: #fff; padding: 12px 24px; border-radius: var(--r-full);
+      font-size: 13px; font-weight: 600; z-index: 999; transition: transform .25s ease; pointer-events: none; }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── STATS ──────────────────────────────────────────────── */
+    .stats-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stat-card {
+      flex: 1; min-width: 120px; background: #fff; border-radius: var(--r); border: 1px solid var(--border);
+      padding: 16px 20px; display: flex; flex-direction: column; gap: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    }
+    .stat-value { font-size: 28px; font-weight: 800; color: var(--teal-dark); line-height: 1; }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.danger { color: var(--danger); }
+    .stat-value.purple { color: #7b4f9e; }
+    .stat-label { font-size: 12px; font-weight: 600; color: var(--on-variant); }
+    .stat-card.clickable { cursor: pointer; transition: box-shadow .15s, transform .1s; }
+    .stat-card.clickable:hover { box-shadow: 0 4px 16px rgba(0,106,98,.12); transform: translateY(-1px); }
+    .stat-card.clickable.active { border-color: var(--teal-dark); background: #f0faf9; }
+    tbody tr.clickable { cursor: pointer; }
+
+    /* ── DASHBOARD ─────────────────────────────────────────── */
+    .dash-section-title {
+      font-size: 11px; font-weight: 700; color: var(--on-variant);
+      text-transform: uppercase; letter-spacing: .7px; margin: 24px 0 10px;
+    }
+    .dash-section-title:first-child { margin-top: 0; }
+    .dash-today-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 4px; }
+    .dash-today-card {
+      background: #fff; border-radius: var(--r); border: 1px solid var(--border);
+      padding: 20px; display: flex; flex-direction: column; gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    }
+    .dash-today-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .dash-today-value { font-size: 36px; font-weight: 800; line-height: 1; }
+    .dash-today-label { font-size: 12px; font-weight: 600; color: var(--on-variant); margin-top: 2px; }
+    .dash-pending-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .dash-pending-card {
+      background: #fff; border-radius: var(--r); border: 1px solid var(--border);
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: box-shadow .15s, transform .1s;
+    }
+    .dash-pending-card:hover { box-shadow: 0 4px 16px rgba(0,106,98,.1); transform: translateY(-1px); }
+    .dash-pending-badge {
+      min-width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800;
+    }
+    .dash-pending-label { font-size: 12px; font-weight: 700; color: var(--on-surface); line-height: 1.3; }
+    .dash-pending-sub { font-size: 11px; color: var(--on-variant); margin-top: 2px; }
+    .dash-recent-table { background: #fff; border-radius: var(--r); border: 1px solid var(--border); overflow: hidden; }
+    .dash-recent-table table { width: 100%; border-collapse: collapse; }
+    .dash-recent-table thead th { padding: 9px 14px; background: var(--surface-low); font-size: 11px; font-weight: 700; color: var(--on-variant); text-transform: uppercase; letter-spacing: .5px; text-align: left; border-bottom: 1px solid var(--border); }
+    .dash-recent-table tbody td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--surface-low); vertical-align: middle; }
+    .dash-recent-table tbody tr:last-child td { border-bottom: none; }
+    .dash-avatar { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    tbody tr.clickable:hover { background: #f0faf9; }
+
+    /* ── LOADING ─────────────────────────────────────────────── */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: var(--on-variant); font-size: 13px; }
+    .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--teal-dark);
+      border-radius: 50%; animation: spin .7s linear infinite; margin-right: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- ── LOGIN ──────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <img src="assets/images/logo-mark.png" alt="MLC" onerror="this.style.display='none'">
+    <h1>Admin Panel</h1>
+    <p class="sub">My Little Circle</p>
+    <button class="btn btn-google" style="width:100%;justify-content:center;padding:12px;gap:10px" onclick="loginGoogle()">
+      <img src="https://www.google.com/favicon.ico" width="16" height="16" alt=""> Sign in with Google
+    </button>
+    <div style="display:flex;align-items:center;gap:10px;width:100%;color:#bbc9c6;font-size:12px">
+      <hr style="flex:1;border-color:#e2e2e5"> or <hr style="flex:1;border-color:#e2e2e5">
+    </div>
+    <input type="email" id="login-email" placeholder="Email address" autocomplete="email">
+    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" onclick="login()">Sign in with email</button>
+    <p id="login-error"></p>
+  </div>
+</div>
+
+<!-- ── APP ────────────────────────────────────────────────────── -->
+<div id="app" style="display:flex">
+  <header>
+    <img src="assets/images/logo-mark.png" alt="" onerror="this.style.display='none'">
+    <span class="brand">My Little Circle</span>
+    <span class="badge">ADMIN</span>
+    <div class="spacer"></div>
+    <span class="user-email" id="user-email"></span>
+    <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
+  </header>
+
+  <div class="body-layout">
+    <aside>
+      <button class="nav-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span>📊</span> Dashboard
+      </button>
+      <button class="nav-btn" data-tab="classes" onclick="switchTab('classes')">
+        <span>📚</span> Classes
+        <span class="cnt" id="pending-cnt" style="display:none"></span>
+      </button>
+      <button class="nav-btn" data-tab="events" onclick="switchTab('events')">
+        <span>🎪</span> Events
+        <span class="cnt" id="events-pending-cnt" style="display:none"></span>
+      </button>
+      <button class="nav-btn" data-tab="parks" onclick="switchTab('parks')">
+        <span>🗺</span> Parks
+      </button>
+      <button class="nav-btn" data-tab="organisers" onclick="switchTab('organisers')">
+        <span>🎓</span> Organisers
+      </button>
+      <button class="nav-btn" data-tab="users" onclick="switchTab('users')">
+        <span>👥</span> Users
+      </button>
+      <button class="nav-btn" data-tab="previews" onclick="switchTab('previews')">
+        <span>📱</span> Previews
+      </button>
+      <button class="nav-btn" data-tab="messages" onclick="switchTab('messages')">
+        <span>💬</span> Messages
+        <span class="cnt" id="support-unread-cnt" style="display:none"></span>
+      </button>
+      <button class="nav-btn" data-tab="reports" onclick="switchTab('reports')">
+        <span>🚩</span> Reports
+        <span class="cnt" id="reports-cnt" style="display:none"></span>
+      </button>
+    </aside>
+
+    <main>
+      <!-- DASHBOARD -->
+      <section id="tab-dashboard">
+        <div class="section-top"><h2>Dashboard</h2></div>
+
+        <p class="dash-section-title">Today</p>
+        <div class="dash-today-grid">
+          <div class="dash-today-card">
+            <div class="dash-today-icon" style="background:#e8f4f2">👤</div>
+            <div>
+              <div class="dash-today-value" id="dash-new-today" style="color:#006a62;font-size:20px">…</div>
+              <div class="dash-today-label">New users</div>
+            </div>
+          </div>
+          <div class="dash-today-card">
+            <div class="dash-today-icon" style="background:#fff3e0">⚡</div>
+            <div>
+              <div class="dash-today-value" id="dash-active-today" style="color:#e65100;font-size:20px">…</div>
+              <div class="dash-today-label">Active users</div>
+            </div>
+          </div>
+          <div class="dash-today-card">
+            <div class="dash-today-icon" style="background:#f3f0ff">👥</div>
+            <div>
+              <div class="dash-today-value" id="dash-total-users" style="color:#7b4f9e;font-size:20px">…</div>
+              <div class="dash-today-label">Total users</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="dash-section-title">Pending actions</p>
+        <div class="dash-pending-grid" id="dash-pending-grid"></div>
+
+        <p class="dash-section-title">Recent sign-ups</p>
+        <div class="dash-recent-table">
+          <table>
+            <thead><tr><th>User</th><th>Joined</th><th>Last seen</th><th>Shire</th></tr></thead>
+            <tbody id="dash-recent-tbody"><tr><td colspan="4" style="text-align:center;padding:32px;color:var(--on-variant)">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CLASSES -->
+      <section id="tab-classes" style="display:none">
+        <div class="section-top">
+          <h2>Classes &amp; Groups</h2>
+          <button class="btn btn-primary" onclick="openClassPanel()">+ Add class</button>
+        </div>
+        <div class="stats-row" id="class-stats"></div>
+        <div class="toolbar">
+          <input class="search-input" id="class-search" placeholder="Search name, venue…" oninput="renderClasses()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:22%">Name</th><th style="width:20%">Category</th><th style="width:16%">Schedule</th><th style="width:14%">Shire</th><th style="width:10%">Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="classes-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- EVENTS -->
+      <section id="tab-events" style="display:none">
+        <div class="section-top">
+          <h2>Events</h2>
+          <button class="btn btn-primary" onclick="openEventPanel()">+ Add event</button>
+        </div>
+        <div class="stats-row" id="event-stats"></div>
+        <div class="toolbar">
+          <input class="search-input" id="event-search" placeholder="Search name, venue…" oninput="renderEvents()">
+          <div class="filter-chips" id="event-filter-chips"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:26%">Name</th>
+              <th style="width:14%">Category</th>
+              <th style="width:20%">Dates</th>
+              <th style="width:14%">Venue</th>
+              <th style="width:10%">Status</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="events-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PARKS -->
+      <section id="tab-parks" style="display:none">
+        <div class="section-top">
+          <h2>Parks</h2>
+          <button class="btn btn-primary" onclick="openParkPanel()">+ Add park</button>
+        </div>
+        <div class="stats-row" id="park-stats"></div>
+
+        <div id="pending-ratings-section" style="display:none;margin-bottom:24px">
+          <h3 style="font-size:15px;font-weight:700;color:#e65100;margin-bottom:10px">⏳ Pending ratings</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Park</th><th>Safety</th><th>Equipment</th><th>Upkeep</th><th>Vibe</th><th>Busy</th><th>Submitted</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="pending-ratings-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input class="search-input" id="park-search" placeholder="Search name, address…" oninput="renderParks()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Address</th><th>Scores</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="parks-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ORGANISERS -->
+      <section id="tab-organisers" style="display:none">
+        <div class="section-top"><h2>Organisers</h2></div>
+        <div class="stats-row" id="organiser-stats"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:24%">Organiser</th>
+              <th style="width:10%">Live</th>
+              <th style="width:10%">Pending</th>
+              <th style="width:10%">Rejected</th>
+              <th style="width:14%">Last submission</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="organisers-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- USERS -->
+      <section id="tab-users" style="display:none">
+        <div class="section-top"><h2>Users</h2></div>
+        <div class="stats-row" id="user-stats"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>User</th><th>Joined</th><th>Last seen</th><th>Role</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PREVIEWS -->
+      <section id="tab-previews" style="display:none">
+        <div class="section-top"><h2>App &amp; Flow Previews</h2></div>
+        <p style="font-size:13px;color:var(--on-variant);margin-bottom:24px">Preview exactly what new users and organisers see when they first join.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px">
+
+          <!-- User onboarding -->
+          <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px">
+            <div style="font-size:16px;font-weight:800;color:var(--teal-dark);margin-bottom:6px">👶 User onboarding</div>
+            <div style="font-size:12px;color:var(--on-variant);margin-bottom:16px;line-height:1.6">5-step in-app flow: avatar → kids count → kids details → languages → interests. Runs on first login in the mobile app.</div>
+            <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px" id="user-ob-screenshots"></div>
+          </div>
+
+          <!-- Organiser onboarding -->
+          <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:20px">
+            <div style="font-size:16px;font-weight:800;color:var(--teal-dark);margin-bottom:6px">🏫 Organiser onboarding</div>
+            <div style="font-size:12px;color:var(--on-variant);margin-bottom:16px;line-height:1.6">4-step web flow: logo → about → categories → location. Shown after first sign-up on the organiser portal.</div>
+            <a href="/organiser?preview_onboarding=1" target="_blank" class="btn btn-primary btn-sm" style="display:inline-flex;margin-bottom:12px">▶ Preview organiser onboarding</a>
+            <div style="font-size:11px;color:var(--on-variant)">Opens in a new tab. Data won't be saved.</div>
+          </div>
+        </div>
+
+        <!-- Screen shots grid -->
+        <div style="font-size:14px;font-weight:800;color:var(--on-surface);margin-bottom:16px">App screen reference</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px" id="preview-screens-grid"></div>
+      </section>
+
+      <!-- REPORTS -->
+      <section id="tab-reports" style="display:none">
+        <div class="section-top"><h2>🚩 User Reports</h2></div>
+        <div id="reports-list"><div style="padding:48px;text-align:center;color:var(--on-variant)">Loading…</div></div>
+      </section>
+
+      <!-- MESSAGES (support inbox) -->
+      <section id="tab-messages" style="display:none">
+        <div class="section-top"><h2>Support &amp; Suggestions</h2></div>
+        <div style="display:grid;grid-template-columns:300px 1fr;gap:0;height:calc(100vh - 160px);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:#fff">
+          <!-- Conversation list -->
+          <div id="support-conv-list" style="border-right:1px solid var(--border);overflow-y:auto;background:var(--surface-low)">
+            <div style="padding:48px 24px;text-align:center;color:var(--on-variant);font-size:13px">Loading…</div>
+          </div>
+          <!-- Thread -->
+          <div id="support-thread-pane" style="display:flex;align-items:center;justify-content:center;color:var(--on-variant);font-size:13px">
+            Select a conversation
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- PANEL -->
+  <div id="panel-overlay" onclick="handleOverlayClick(event)">
+    <div id="panel">
+      <div class="panel-header">
+        <h3 id="panel-title">Edit</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closePanel()">✕ Close</button>
+      </div>
+      <div class="panel-body" id="panel-body"></div>
+      <div class="panel-footer">
+        <button class="btn btn-primary" id="panel-save-btn" onclick="savePanel()">Save</button>
+        <button class="btn btn-ghost" onclick="closePanel()">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="panel-delete-btn" style="margin-left:auto;display:none" onclick="deleteFromPanel()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── SUPABASE ─────────────────────────────────────────────────────
+const { createClient } = window.supabase
+const fetchWithTimeout = (url, options) => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 15000)
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer))
+}
+const db = createClient(
+  'https://emzlwkgpmckxqehsefyq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtemx3a2dwbWNreHFlaHNlZnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2Mzg2MzksImV4cCI6MjA5NTIxNDYzOX0.cY-nSK7N8xdhSnZ6U40C3yychdzV-T7wtbGX4MyfxdI',
+  { global: { fetch: fetchWithTimeout } }
+)
+const MAPS_KEY = 'AIzaSyAJONwdkM8mZaolHU4w-2nNYAXp6j2PzH4'
+
+// ── SHIRES ───────────────────────────────────────────────────────
+const SHIRES = [
+  ['bedfordshire','Bedfordshire'],['buckinghamshire','Buckinghamshire'],['cambridgeshire','Cambridgeshire'],
+  ['cheshire','Cheshire'],['cleveland','Cleveland'],['cornwall','Cornwall'],['cumbria','Cumbria'],
+  ['derbyshire','Derbyshire'],['devon','Devon'],['dorset','Dorset'],['durham','Durham'],
+  ['east-sussex','East Sussex'],['essex','Essex'],['gloucestershire','Gloucestershire'],
+  ['greater-london','Greater London'],['greater-manchester','Greater Manchester'],['hampshire','Hampshire'],
+  ['hertfordshire','Hertfordshire'],['kent','Kent'],['lancashire','Lancashire'],['leicestershire','Leicestershire'],
+  ['lincolnshire','Lincolnshire'],['merseyside','Merseyside'],['norfolk','Norfolk'],['north-yorkshire','North Yorkshire'],
+  ['northamptonshire','Northamptonshire'],['northumberland','Northumberland'],['nottinghamshire','Nottinghamshire'],
+  ['oxfordshire','Oxfordshire'],['shropshire','Shropshire'],['somerset','Somerset'],['south-yorkshire','South Yorkshire'],
+  ['staffordshire','Staffordshire'],['suffolk','Suffolk'],['surrey','Surrey'],['tyne-and-wear','Tyne and Wear'],
+  ['warwickshire','Warwickshire'],['west-berkshire','West Berkshire'],['west-midlands','West Midlands'],
+  ['west-sussex','West Sussex'],['west-yorkshire','West Yorkshire'],['wiltshire','Wiltshire'],['worcestershire','Worcestershire'],
+  ['anglesey','Anglesey'],['breconshire','Breconshire'],['caernarvonshire','Caernarvonshire'],['cardiganshire','Cardiganshire'],
+  ['carmarthenshire','Carmarthenshire'],['denbighshire','Denbighshire'],['flintshire','Flintshire'],['glamorgan','Glamorgan'],
+  ['merionethshire','Merionethshire'],['monmouthshire','Monmouthshire'],['montgomeryshire','Montgomeryshire'],
+  ['pembrokeshire','Pembrokeshire'],['radnorshire','Radnorshire'],
+  ['aberdeen-city','Aberdeen City'],['aberdeenshire','Aberdeenshire'],['angus','Angus'],['argyll-and-bute','Argyll and Bute'],
+  ['city-of-edinburgh','City of Edinburgh'],['clackmannanshire','Clackmannanshire'],['dumfries-and-galloway','Dumfries and Galloway'],
+  ['dundee-city','Dundee City'],['east-ayrshire','East Ayrshire'],['east-dunbartonshire','East Dunbartonshire'],
+  ['east-lothian','East Lothian'],['east-renfrewshire','East Renfrewshire'],['eilean-siar','Eilean Siar'],
+  ['falkirk','Falkirk'],['fife','Fife'],['glasgow-city','Glasgow City'],['highland','Highland'],['inverclyde','Inverclyde'],
+  ['midlothian','Midlothian'],['moray','Moray'],['north-ayrshire','North Ayrshire'],['north-lanarkshire','North Lanarkshire'],
+  ['orkney-islands','Orkney Islands'],['perth-and-kinross','Perth and Kinross'],['renfrewshire','Renfrewshire'],
+  ['scottish-borders','Scottish Borders'],['shetland-islands','Shetland Islands'],['south-ayrshire','South Ayrshire'],
+  ['south-lanarkshire','South Lanarkshire'],['stirling','Stirling'],['west-dunbartonshire','West Dunbartonshire'],
+  ['west-lothian','West Lothian'],
+  ['antrim','Antrim'],['armagh','Armagh'],['down','Down'],['fermanagh','Fermanagh'],
+  ['derry-and-londonderry','Derry and Londonderry'],['tyrone','Tyrone'],
+]
+
+const CATEGORIES = ['Music','Sport','Art','Sensory','Swimming','Movement','Feeding & Nutrition','Health','Play','Other']
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+const PARK_TAGS = [
+  // Fencing
+  'Fully fenced','Partly fenced','Not fenced',
+  // Equipment
+  'Swings','Baby swings','Slide','Climbing frame','Zip line','Monkey bars','Roundabout','See-saw',
+  'Spinner','Trampoline','Sandpit','Paddling pool','Water play','Outdoor gym',
+  // Age zones
+  'Under 2s area','Toddler area','Junior area',
+  // Safety
+  'Soft surfacing','Self-closing gate','Near road','Near water',
+  // Facilities
+  'Café on site','Café nearby','Toilets','Baby changing',
+  'Accessibility','Benches','Shade','Shelter','Picnic area',
+  // Transport & parking
+  'Free parking','Paid parking','Car park','Bike path','Scooter friendly',
+  // Other activities
+  'Dog friendly','Basketball court','Tennis courts','Skateboard area',
+]
+
+// ── STATE ────────────────────────────────────────────────────────
+let classes = [], parks = [], users = []
+let classFilter = 'all', parkFilter = 'all'
+let panelMode = null, panelItem = null
+
+// ── AUTH ─────────────────────────────────────────────────────────
+async function init() {
+  const { data: { session } } = await db.auth.getSession()
+  if (session) await afterLogin(session.user)
+  else showLogin()
+}
+
+async function loginGoogle() {
+  await db.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/admin' }
+  })
+}
+
+async function login() {
+  const email = document.getElementById('login-email').value.trim()
+  const password = document.getElementById('login-password').value
+  document.getElementById('login-error').textContent = ''
+  if (!email || !password) return
+  const { data, error } = await db.auth.signInWithPassword({ email, password })
+  if (error) { document.getElementById('login-error').textContent = error.message; return }
+  await afterLogin(data.user)
+}
+
+async function afterLogin(user) {
+  const { data: profile } = await db.from('profiles').select('is_admin').eq('id', user.id).single()
+  if (!profile?.is_admin) {
+    await db.auth.signOut()
+    showLogin()
+    document.getElementById('login-error').textContent = 'Access denied: admin only.'
+    return
+  }
+  document.getElementById('login-screen').style.display = 'none'
+  document.getElementById('app').style.display = 'flex'
+  document.getElementById('user-email').textContent = user.email
+  loadDashboard()
+  loadClasses()
+  loadEvents()
+  loadParks()
+  loadUsers()
+  loadOrganisers()
+}
+
+async function logout() {
+  await db.auth.signOut()
+  location.reload()
+}
+
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex'
+  document.getElementById('app').style.display = 'none'
+}
+
+document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') login() })
+
+// ── TABS ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
+  document.querySelectorAll('section[id^="tab-"]').forEach(s => s.style.display = 'none')
+  document.getElementById(`tab-${tab}`).style.display = 'block'
+  if (tab === 'previews') renderPreviews()
+  if (tab === 'messages') { if (!supportConvs.length) loadSupportMessages(); else renderSupportMessages() }
+  if (tab === 'reports') loadReports()
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────
+async function loadDashboard() {
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0)
+  const since = todayStart.toISOString()
+
+  const [
+    { count: newToday },
+    { count: activeToday },
+    { count: totalUsers },
+    { data: recentUsers },
+    { data: pendingClasses },
+    { data: pendingEvents },
+    { data: parks },
+    { count: unreadMsgs },
+    { count: openReports },
+  ] = await Promise.all([
+    db.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', since),
+    db.from('chat_users').select('id', { count: 'exact', head: true }).gte('last_seen_at', since),
+    db.from('profiles').select('id', { count: 'exact', head: true }),
+    db.from('profiles').select('id, first_name, last_name, avatar_color, avatar_url, created_at, shire_id').order('created_at', { ascending: false }).limit(10),
+    db.from('classes').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    db.from('events').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    db.from('parks').select('status'),
+    db.from('conversations').select('id', { count: 'exact', head: true }).eq('user2_id', '00000000-0000-0000-0000-000000000001'),
+    db.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+  ])
+
+  document.getElementById('dash-new-today').textContent = newToday ?? 0
+  document.getElementById('dash-new-today').style.fontSize = '36px'
+  document.getElementById('dash-active-today').textContent = activeToday ?? 0
+  document.getElementById('dash-active-today').style.fontSize = '36px'
+  document.getElementById('dash-total-users').textContent = totalUsers ?? 0
+  document.getElementById('dash-total-users').style.fontSize = '36px'
+
+  const unratedParks = (parks || []).filter(p => p.status !== 'approved' && p.status !== 'deleted').length
+
+  const pending = [
+    { label: 'Classes', sub: 'pending review', count: pendingClasses ?? 0, color: '#006a62', bg: '#e8f4f2', tab: 'classes' },
+    { label: 'Events', sub: 'pending review', count: pendingEvents ?? 0, color: '#7b4f9e', bg: '#f3f0ff', tab: 'events' },
+    { label: 'Parks', sub: 'to rate', count: unratedParks, color: '#e65100', bg: '#fff3e0', tab: 'parks' },
+    { label: 'Messages', sub: 'support inbox', count: unreadMsgs ?? 0, color: '#1a3b8b', bg: '#e8f0fe', tab: 'messages' },
+    { label: 'Reports', sub: 'open', count: openReports ?? 0, color: '#ba1a1a', bg: '#ffdad6', tab: 'reports' },
+  ]
+  document.getElementById('dash-pending-grid').innerHTML = pending.map(p => `
+    <div class="dash-pending-card" onclick="switchTab('${p.tab}')">
+      <div class="dash-pending-badge" style="background:${p.bg};color:${p.color}">${p.count}</div>
+      <div>
+        <div class="dash-pending-label">${p.label}</div>
+        <div class="dash-pending-sub">${p.sub}</div>
+      </div>
+    </div>
+  `).join('')
+
+  const tbody = document.getElementById('dash-recent-tbody')
+  if (!recentUsers?.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--on-variant)">No users yet</td></tr>'; return }
+  tbody.innerHTML = recentUsers.map(u => {
+    const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || 'Unknown'
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2)
+    const avatar = u.avatar_url
+      ? `<img src="${esc(u.avatar_url)}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px">`
+      : `<span class="dash-avatar" style="background:${esc(u.avatar_color||'#006a62')};margin-right:8px">${esc(initials)}</span>`
+    const joined = new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    const isToday = u.created_at >= since
+    return `<tr>
+      <td style="display:flex;align-items:center">${avatar}<span style="font-weight:700">${esc(name)}</span>${isToday ? '<span class="badge badge-ok" style="margin-left:8px">New</span>' : ''}</td>
+      <td style="color:var(--on-variant);font-size:12px">${joined}</td>
+      <td style="color:var(--on-variant);font-size:12px">—</td>
+      <td style="color:var(--on-variant);font-size:12px">${esc(u.shire_id||'')}</td>
+    </tr>`
+  }).join('')
+
+  // Backfill last_seen_at for recent users
+  const ids = (recentUsers||[]).map(u => u.id)
+  if (ids.length) {
+    const { data: chatRows } = await db.from('chat_users').select('id, last_seen_at').in('id', ids)
+    const seenMap = Object.fromEntries((chatRows||[]).map(r => [r.id, r.last_seen_at]))
+    const rows = tbody.querySelectorAll('tr')
+    recentUsers.forEach((u, i) => {
+      const lastSeenCell = rows[i]?.querySelectorAll('td')[2]
+      if (lastSeenCell && seenMap[u.id]) {
+        const diff = Date.now() - new Date(seenMap[u.id]).getTime()
+        const mins = Math.floor(diff / 60000)
+        const label = mins < 2 ? 'Just now' : mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins/60)}h ago` : `${Math.floor(mins/1440)}d ago`
+        lastSeenCell.textContent = label
+      }
+    })
+  }
+}
+
+// ── EVENTS ────────────────────────────────────────────────────────
+let events = []
+let eventFilter = 'all'
+
+const EVENT_CATEGORY_COLOURS = {
+  Community: { bg: '#e8f5e9', text: '#2e7d32' },
+  Festival:  { bg: '#fff8e1', text: '#f57f17' },
+  Workshop:  { bg: '#e3f2fd', text: '#1565c0' },
+  Playdate:  { bg: '#fce4ec', text: '#880e4f' },
+  Sport:     { bg: '#e8eaf6', text: '#283593' },
+  Seasonal:  { bg: '#f3e5f5', text: '#6a1b9a' },
+  'Open Day':{ bg: '#e0f2f1', text: '#00695c' },
+  Sale:      { bg: '#fff3e0', text: '#e65100' },
+  Other:     { bg: '#f5f5f5', text: '#616161' },
+}
+
+function formatEventDates(dates) {
+  if (!dates?.length) return 'No dates'
+  const sorted = [...dates].sort()
+  const fmt = iso => { const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) }
+  if (sorted.length === 1) return fmt(sorted[0])
+  if (sorted.length === 2) return `${fmt(sorted[0])} & ${fmt(sorted[1])}`
+  return `${fmt(sorted[0])} +${sorted.length - 1} more`
+}
+
+async function loadEvents() {
+  const tbody = document.getElementById('events-tbody')
+  tbody.innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>'
+  const { data } = await db.from('events').select('*').order('created_at', { ascending: false })
+  events = data || []
+  const pending = events.filter(e => e.status === 'pending').length
+  const cnt = document.getElementById('events-pending-cnt')
+  if (pending > 0) { cnt.textContent = pending; cnt.style.display = 'inline' }
+  renderEventStats()
+  renderEvents()
+}
+
+function renderEventStats() {
+  const total = events.length
+  const pending = events.filter(e => e.status === 'pending').length
+  const live = events.filter(e => e.status === 'approved').length
+  const rejected = events.filter(e => e.status === 'rejected').length
+  const f = eventFilter
+  document.getElementById('event-stats').innerHTML = `
+    <div class="stat-card clickable ${f==='all'?'active':''}" onclick="setEventFilter('all')"><div class="stat-value">${total}</div><div class="stat-label">Total</div></div>
+    <div class="stat-card clickable ${f==='pending'?'active':''}" onclick="setEventFilter('pending')"><div class="stat-value warn">${pending}</div><div class="stat-label">Pending review</div></div>
+    <div class="stat-card clickable ${f==='approved'?'active':''}" onclick="setEventFilter('approved')"><div class="stat-value">${live}</div><div class="stat-label">Live</div></div>
+    <div class="stat-card clickable ${f==='rejected'?'active':''}" onclick="setEventFilter('rejected')"><div class="stat-value danger">${rejected}</div><div class="stat-label">Rejected</div></div>
+  `
+}
+
+function setEventFilter(f) { eventFilter = f; renderEventStats(); renderEvents() }
+
+function renderEvents() {
+  const q = (document.getElementById('event-search')?.value || '').toLowerCase()
+  const tbody = document.getElementById('events-tbody')
+  let rows = events
+  if (eventFilter !== 'all') rows = rows.filter(e => e.status === eventFilter)
+  if (q) rows = rows.filter(e => (e.name+' '+(e.venue_name||'')).toLowerCase().includes(q))
+  if (!rows.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No events found</td></tr>'; return }
+  tbody.innerHTML = rows.map(e => {
+    const cat = e.category || ''
+    const colours = EVENT_CATEGORY_COLOURS[cat] || { bg: '#f5f5f5', text: '#616161' }
+    const catBadge = cat ? `<span class="badge" style="background:${colours.bg};color:${colours.text}">${esc(cat)}</span>` : '<span style="color:#9eada9">—</span>'
+    const statusBadge = e.status === 'approved'
+      ? '<span class="badge badge-ok">Live</span>'
+      : e.status === 'pending' ? '<span class="badge badge-warn">Pending</span>'
+      : '<span class="badge badge-err">Rejected</span>'
+    const dates = formatEventDates(e.event_dates)
+    return `<tr class="clickable" onclick="openEventPanel('${e.id}')">
+      <td><div class="td-name">${esc(e.name)}</div></td>
+      <td>${catBadge}</td>
+      <td><div class="td-meta">${esc(dates)}</div></td>
+      <td><div class="td-meta">${esc(e.venue_name||'')}</div></td>
+      <td>${statusBadge}</td>
+      <td><div class="actions-cell">
+        ${e.status === 'pending' ? `<button class="btn btn-ok btn-sm" onclick="event.stopPropagation();setEvStatus('${e.id}','approved')">Publish</button><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();setEvStatus('${e.id}','rejected')">Reject</button>` : ''}
+        ${e.status === 'approved' ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();setEvStatus('${e.id}','pending')">Unpublish</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteEvent('${e.id}')">Delete</button>
+      </div></td>
+    </tr>`
+  }).join('')
+}
+
+async function setEvStatus(id, status) {
+  await db.from('events').update({ status }).eq('id', id)
+  events = events.map(e => e.id === id ? { ...e, status } : e)
+  const pending = events.filter(e => e.status === 'pending').length
+  const cnt = document.getElementById('events-pending-cnt')
+  cnt.textContent = pending; cnt.style.display = pending > 0 ? 'inline' : 'none'
+  renderEventStats(); renderEvents()
+  toast(status === 'approved' ? 'Event published' : status === 'rejected' ? 'Event rejected' : 'Event unpublished')
+}
+
+async function deleteEvent(id) {
+  if (!confirm('Delete this event? This cannot be undone.')) return
+  await db.from('events').delete().eq('id', id)
+  events = events.filter(e => e.id !== id)
+  renderEventStats(); renderEvents()
+  toast('Event deleted')
+}
+
+function openEventPanel(id) {
+  const ev = id ? events.find(e => e.id === id) : null
+  // Reuse the panel pattern — build a simple slide-in form
+  const overlay = document.getElementById('panel-overlay')
+  const panel = document.getElementById('panel')
+  const v = ev || {}
+  const dates = (v.event_dates || []).join(', ')
+  document.getElementById('panel-title').textContent = ev ? `Edit: ${ev.name}` : 'Add event'
+  document.getElementById('panel-body').innerHTML = `
+      <div class="field"><label>Name *</label><input id="ef-name" value="${esc(v.name||'')}" placeholder="e.g. Summer Family Fair"></div>
+      <div class="field"><label>Description</label><textarea id="ef-description" rows="3">${esc(v.description||'')}</textarea></div>
+      <div class="field"><label>Category</label><select id="ef-category">
+        <option value="">Select…</option>
+        ${['Community','Festival','Workshop','Playdate','Sport','Seasonal','Open Day','Sale','Other'].map(c => `<option value="${c}"${v.category===c?' selected':''}>${c}</option>`).join('')}
+      </select></div>
+      <div class="field"><label>Dates (comma-separated YYYY-MM-DD)</label><input id="ef-dates" value="${esc(dates)}" placeholder="2026-07-04, 2026-07-05"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field"><label>Start time</label><input type="time" id="ef-time_start" value="${esc(v.time_start||'')}"></div>
+        <div class="field"><label>End time</label><input type="time" id="ef-time_end" value="${esc(v.time_end||'')}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field"><label>Min age (months)</label><input type="number" id="ef-age_min" value="${v.age_min_months??''}" min="0"></div>
+        <div class="field"><label>Max age (months)</label><input type="number" id="ef-age_max" value="${v.age_max_months??''}" min="0"></div>
+      </div>
+      <div class="field"><label>Price (£, blank = free)</label><input type="number" id="ef-price" value="${v.price??''}" step="0.01" min="0"></div>
+      <div class="field"><label>Venue name</label><input id="ef-venue" value="${esc(v.venue_name||'')}"></div>
+      <div class="field"><label>Address</label><input id="ef-address" value="${esc(v.address||'')}"></div>
+      <div class="field"><label>Website</label><input id="ef-website" value="${esc(v.website||'')}" placeholder="https://…"></div>
+      <div class="field"><label>Photo URL</label><input id="ef-photo" value="${esc(v.photo_url||'')}"></div>
+      <div class="field"><label>Status</label><select id="ef-status">
+        <option value="pending"${v.status==='pending'||!ev?' selected':''}>Pending</option>
+        <option value="approved"${v.status==='approved'?' selected':''}>Live</option>
+        <option value="rejected"${v.status==='rejected'?' selected':''}>Rejected</option>
+      </select></div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button class="btn btn-primary" onclick="saveEvent('${ev?.id||''}')">Save event</button>
+        ${ev ? `<button class="btn btn-danger" onclick="deleteEvent('${ev.id}');closePanel()">Delete</button>` : ''}
+      </div>
+  `
+  overlay.classList.add('open')
+}
+
+async function saveEvent(id) {
+  const name = document.getElementById('ef-name').value.trim()
+  if (!name) { alert('Name is required'); return }
+  const datesRaw = document.getElementById('ef-dates').value.split(',').map(s => s.trim()).filter(Boolean)
+  const payload = {
+    name,
+    description: document.getElementById('ef-description').value.trim() || null,
+    category: document.getElementById('ef-category').value || null,
+    event_dates: datesRaw,
+    time_start: document.getElementById('ef-time_start').value || null,
+    time_end: document.getElementById('ef-time_end').value || null,
+    age_min_months: parseInt(document.getElementById('ef-age_min').value) || null,
+    age_max_months: parseInt(document.getElementById('ef-age_max').value) || null,
+    price: parseFloat(document.getElementById('ef-price').value) || null,
+    venue_name: document.getElementById('ef-venue').value.trim() || null,
+    address: document.getElementById('ef-address').value.trim() || null,
+    photo_url: document.getElementById('ef-photo').value.trim() || null,
+    website: document.getElementById('ef-website').value.trim() || null,
+    status: document.getElementById('ef-status').value,
+    shire_id: 'cambridgeshire',
+  }
+  let saved
+  if (id) {
+    const { data, error } = await db.from('events').update(payload).eq('id', id).select().single()
+    if (error) { alert('Save failed: ' + error.message); return }
+    saved = data
+    events = events.map(e => e.id === id ? saved : e)
+  } else {
+    const { data, error } = await db.from('events').insert(payload).select().single()
+    if (error) { alert('Save failed: ' + error.message); return }
+    saved = data
+    events = [saved, ...events]
+  }
+  renderEventStats(); renderEvents()
+  closePanel()
+  toast(id ? 'Event updated' : 'Event created')
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast')
+  el.textContent = msg; el.classList.add('show')
+  setTimeout(() => el.classList.remove('show'), 2800)
+}
+
+// ── CLASSES ──────────────────────────────────────────────────────
+async function loadClasses() {
+  const tbody = document.getElementById('classes-tbody')
+  tbody.innerHTML = '<tr><td colspan="6"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr>'
+  const { data } = await db.from('classes').select('*').order('created_at', { ascending: false })
+  classes = data || []
+  const pending = classes.filter(c => c.status === 'pending').length
+  const cnt = document.getElementById('pending-cnt')
+  if (pending > 0) { cnt.textContent = pending; cnt.style.display = 'inline'; }
+  renderClasses()
+}
+
+function setClassFilter(f) {
+  classFilter = f
+  renderClasses()
+}
+
+function loadDismissedDupes() {
+  try { return new Set(JSON.parse(localStorage.getItem('mlc_dismissed_dupes') || '[]')) }
+  catch { return new Set() }
+}
+let dismissedDupes = loadDismissedDupes()
+
+function dismissDupe(event, id) {
+  event.stopPropagation()
+  dismissedDupes.add(id)
+  localStorage.setItem('mlc_dismissed_dupes', JSON.stringify([...dismissedDupes]))
+  renderClasses()
+  toast('Marked as not a duplicate')
+}
+
+function buildDuplicateMap() {
+  const map = {}
+  classes.forEach(c => {
+    if (dismissedDupes.has(c.id)) return
+    const venue = (c.venue_name || '').trim().toLowerCase()
+    const time = c.time_start || ''
+    if (!venue || !time) return
+    const key = `${venue}|${c.day_of_week||''}|${time}`
+    if (!map[key]) map[key] = []
+    map[key].push(c.id)
+  })
+  const dupIds = new Set()
+  const dupKeys = {}
+  let dupGroups = 0
+  Object.entries(map).forEach(([key, ids]) => {
+    if (ids.length > 1) { dupGroups++; ids.forEach(id => { dupIds.add(id); dupKeys[id] = key }) }
+  })
+  return { dupIds, dupGroups, dupKeys }
+}
+
+function renderClassStats() {
+  const total = classes.length
+  const pending = classes.filter(c => c.status === 'pending').length
+  const live = classes.filter(c => c.status === 'approved').length
+  const rejected = classes.filter(c => c.status === 'rejected').length
+  const { dupGroups } = buildDuplicateMap()
+  const f = classFilter
+  document.getElementById('class-stats').innerHTML = `
+    <div class="stat-card clickable ${f==='all'?'active':''}" onclick="setClassFilter('all')"><div class="stat-value">${total}</div><div class="stat-label">Total</div></div>
+    <div class="stat-card clickable ${f==='pending'?'active':''}" onclick="setClassFilter('pending')"><div class="stat-value warn">${pending}</div><div class="stat-label">Pending review</div></div>
+    <div class="stat-card clickable ${f==='approved'?'active':''}" onclick="setClassFilter('approved')"><div class="stat-value">${live}</div><div class="stat-label">Live</div></div>
+    <div class="stat-card clickable ${f==='rejected'?'active':''}" onclick="setClassFilter('rejected')"><div class="stat-value danger">${rejected}</div><div class="stat-label">Rejected</div></div>
+    ${dupGroups > 0 ? `<div class="stat-card" style="border-color:var(--warn);background:#fff8f0"><div class="stat-value warn">${dupGroups}</div><div class="stat-label">Duplicate slots</div></div>` : ''}
+  `
+}
+
+function renderClasses() {
+  renderClassStats()
+  const { dupIds, dupKeys } = buildDuplicateMap()
+  const q = document.getElementById('class-search').value.toLowerCase()
+  let list = classes
+  if (classFilter !== 'all') list = list.filter(c => c.status === classFilter)
+  if (q) list = list.filter(c =>
+    c.name.toLowerCase().includes(q) ||
+    (c.venue_name||'').toLowerCase().includes(q) ||
+    (c.category||'').toLowerCase().includes(q)
+  )
+
+  // Sort: duplicate groups first (grouped by key), then rest
+  list = [...list].sort((a, b) => {
+    const ka = dupIds.has(a.id) ? '0:' + dupKeys[a.id] : '1:' + a.name.toLowerCase()
+    const kb = dupIds.has(b.id) ? '0:' + dupKeys[b.id] : '1:' + b.name.toLowerCase()
+    return ka.localeCompare(kb)
+  })
+
+  const tbody = document.getElementById('classes-tbody')
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No classes found</td></tr>'; return }
+
+  let lastDupKey = null
+  tbody.innerHTML = list.map(c => {
+    const statusBadge = c.status === 'approved' ? 'badge-ok' : c.status === 'pending' ? 'badge-warn' : 'badge-err'
+    const statusLabel = c.status === 'approved' ? 'Live' : c.status === 'pending' ? 'Pending' : 'Rejected'
+    const schedule = [c.day_of_week, c.time_start].filter(Boolean).join(' · ')
+    const isDup = dupIds.has(c.id)
+    const thisKey = dupKeys[c.id] || null
+
+    let separator = ''
+    if (isDup && thisKey !== lastDupKey && lastDupKey !== null) {
+      separator = `<tr><td colspan="6" style="padding:4px 0;background:var(--surface-low)"></td></tr>`
+    }
+    lastDupKey = isDup ? thisKey : null
+
+    const locDot = c.location_accurate === true
+      ? '<span title="Precise address" style="width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;flex-shrink:0"></span>'
+      : c.location_accurate === false
+        ? '<span title="Approximate (postcode centroid)" style="width:8px;height:8px;border-radius:50%;background:#f57f17;display:inline-block;flex-shrink:0"></span>'
+        : '<span title="No coordinates" style="width:8px;height:8px;border-radius:50%;background:#bdbdbd;display:inline-block;flex-shrink:0"></span>'
+
+    const row = `<tr class="clickable" onclick="openClassPanel('${c.id}')" ${isDup ? 'style="background:#fff8f0"' : ''}>
+      <td><div class="td-name" style="display:flex;align-items:center;gap:6px">
+        ${esc(c.name)}
+        ${isDup ? '<span class="badge badge-warn" style="font-size:10px;padding:2px 7px">Duplicate</span>' : ''}
+      </div>
+      <div class="td-meta" style="display:flex;align-items:center;gap:5px">${locDot}${esc(c.venue_name||'')}</div></td>
+      <td><span class="td-meta">${esc(c.category||'—')}</span></td>
+      <td><div class="td-meta">${esc(schedule||'—')}</div></td>
+      <td><div class="td-meta">${esc(c.shire_id||'—')}</div></td>
+      <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+      <td><div class="actions-cell" onclick="event.stopPropagation()">
+        ${c.status === 'pending' ? `<button class="btn btn-ok btn-sm" onclick="quickClassStatus('${c.id}','approved')">Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="quickClassStatus('${c.id}','rejected')">Reject</button>` : ''}
+        ${c.status === 'approved' ? `<button class="btn btn-warn btn-sm" onclick="quickClassStatus('${c.id}','pending')">Unpublish</button>` : ''}
+        ${isDup ? `<button class="btn btn-ghost btn-sm" onclick="dismissDupe(event,'${c.id}')" title="Mark as not a duplicate">Not a dup</button>` : ''}
+      </div></td>
+    </tr>`
+    return separator + row
+  }).join('')
+}
+
+async function quickClassStatus(id, status) {
+  if (status === 'approved') {
+    const cls = classes.find(c => c.id === id)
+    if (!cls?.lat || !cls?.lng) { toast('Cannot publish: class has no coordinates. Geocode it first.', true); return }
+  }
+  await db.from('classes').update({ status }).eq('id', id)
+  classes = classes.map(c => c.id === id ? { ...c, status } : c)
+  renderClasses()
+  const pending = classes.filter(c => c.status === 'pending').length
+  const cnt = document.getElementById('pending-cnt')
+  cnt.textContent = pending; cnt.style.display = pending > 0 ? 'inline' : 'none'
+  toast(status === 'approved' ? 'Published ✓' : status === 'rejected' ? 'Rejected' : 'Unpublished')
+}
+
+function openClassPanel(id) {
+  const cls = id ? classes.find(c => c.id === id) : null
+  panelMode = 'class'; panelItem = cls
+  document.getElementById('panel-title').textContent = cls ? `Edit: ${cls.name}` : 'Add class'
+  document.getElementById('panel-delete-btn').style.display = cls ? 'inline-flex' : 'none'
+  document.getElementById('panel-body').innerHTML = buildClassForm(cls)
+  rpInit(cls || {})
+  rpRender()
+  openPanel()
+}
+
+function buildClassForm(c) {
+  const v = c || {}
+  const eventType = v.event_type || 'recurring'
+  const shireSel = SHIRES.map(([id, name]) =>
+    `<option value="${id}" ${v.shire_id === id ? 'selected' : ''}>${name}</option>`).join('')
+  const catChips = CATEGORIES.map(cat =>
+    `<span class="chip-opt ${v.category === cat ? 'active' : ''}" onclick="toggleChip(this,'category','${cat}',true)">${cat}</span>`).join('')
+  const statusChips = ['approved','pending','rejected'].map(s => {
+    const cls2 = s === 'approved' ? 'active-ok' : s === 'pending' ? 'active-warn' : 'active-err'
+    return `<span class="chip-opt ${v.status === s ? cls2 : ''}" onclick="toggleStatusChip(this,'${s}')">${s === 'approved' ? 'Live' : s.charAt(0).toUpperCase()+s.slice(1)}</span>`
+  }).join('')
+  const bookingChips = ['drop_in','booking_required'].map(b =>
+    `<span class="chip-opt ${v.booking_type === b ? 'active' : ''}" onclick="toggleChip(this,'booking_type','${b}',true)">${b === 'drop_in' ? 'Drop-in' : 'Booking required'}</span>`).join('')
+
+  return `
+    <input type="hidden" id="f-id"           value="${v.id||''}">
+    <input type="hidden" id="f-category"     value="${v.category||''}">
+    <input type="hidden" id="f-status"       value="${v.status||'approved'}">
+    <input type="hidden" id="f-event_type"   value="${eventType}">
+    <input type="hidden" id="f-booking_type" value="${v.booking_type||''}">
+
+    <div class="field-row">
+      <div class="field" style="flex:2"><label>Name *</label><input id="f-name" value="${esc(v.name||'')}" placeholder="e.g. Baby Sensory"></div>
+      <div class="field"><label>Category</label><div class="chips-field" style="margin-top:2px">${catChips}</div></div>
+    </div>
+    <div class="field"><label>Description</label><textarea id="f-description" placeholder="Short description" style="min-height:80px">${esc(v.description||'')}</textarea></div>
+
+    <div class="field-row">
+      <div class="field"><label>Event type</label>
+        <div class="chips-field">
+          <span class="chip-opt ${eventType==='recurring'?'active':''}" data-et="recurring" onclick="rpSetEventType('recurring')">Recurring</span>
+          <span class="chip-opt ${eventType==='one_off'?'active':''}" data-et="one_off" onclick="rpSetEventType('one_off')">One-off</span>
+        </div>
+      </div>
+      <div class="field"><label>Time</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="time" id="f-time_start" value="${v.time_start||''}" style="flex:1">
+          <span style="font-size:12px;color:var(--on-variant)">→</span>
+          <input type="time" id="f-time_end" value="${v.time_end||''}" style="flex:1">
+        </div>
+      </div>
+    </div>
+
+    <div id="class-one-off-section"${eventType!=='one_off'?' style="display:none"':''}>
+      <div class="field"><label>Date *</label><input type="date" id="f-one-off-date" value="${eventType==='one_off'?(v.start_date||''):''}"></div>
+    </div>
+    <div id="class-start-section"${eventType==='one_off'?' style="display:none"':''}>
+      <div class="field"><label>Start date <span style="font-weight:400;text-transform:none">(optional — for preview)</span></label>
+        <input type="date" id="f-start_date" value="${v.start_date||''}" onchange="rpRender()">
+      </div>
+    </div>
+
+    <div id="rp-container"></div>
+
+    <hr class="section-divider">
+    <div class="grid4">
+      <div class="field"><label>Min age (mo)</label><input type="number" id="f-age_min_months" value="${v.age_min_months??''}" placeholder="0" min="0"></div>
+      <div class="field"><label>Max age (mo)</label><input type="number" id="f-age_max_months" value="${v.age_max_months??''}" placeholder="60" min="0"></div>
+      <div class="field"><label>Price (£)</label><input type="number" id="f-price" value="${v.price??''}" placeholder="free" step="0.01" min="0"></div>
+      <div class="field"><label>Max capacity</label><input type="number" id="f-max_capacity" value="${v.max_capacity??''}" placeholder="—" min="1"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Attendance</label><div class="chips-field">${bookingChips}</div></div>
+      <div class="field"><label>Organiser</label><input id="f-organiser" value="${esc(v.organiser||'')}" placeholder="e.g. Jane Smith"></div>
+    </div>
+
+    <hr class="section-divider">
+    <div class="field-row">
+      <div class="field"><label>Venue name</label><input id="f-venue_name" value="${esc(v.venue_name||'')}" placeholder="e.g. Community Centre"></div>
+      <div class="field"><label>Street</label><input id="f-street" value="${esc(v.street||'')}" placeholder="e.g. 10 High Street"></div>
+    </div>
+    <div class="grid5">
+      <div class="field"><label>City</label><input id="f-city" value="${esc(v.city||'')}" placeholder="Cambridge"></div>
+      <div class="field"><label>Postcode</label><input id="f-postcode" value="${esc(v.postcode||'')}"></div>
+      <div class="field"><label>Latitude</label><input type="number" id="f-lat" value="${v.lat??''}" step="any" placeholder="52.20" onblur="detectShireFromCoords()"></div>
+      <div class="field"><label>Longitude</label><input type="number" id="f-lng" value="${v.lng??''}" step="any" placeholder="0.12" onblur="detectShireFromCoords()"></div>
+      <div class="field"><label>&nbsp;</label><button class="btn btn-ghost" style="width:100%;white-space:nowrap" onclick="geocodeClass()">📍 Geocode</button></div>
+    </div>
+    <div style="font-size:12px;margin-bottom:12px;padding:6px 10px;border-radius:6px;display:inline-block;${
+      v.location_accurate === true  ? 'background:#e8f5e9;color:#2e7d32' :
+      v.location_accurate === false ? 'background:#fff8e1;color:#f57f17' :
+                                      'background:#f5f5f5;color:#9e9e9e'
+    }">
+      ${v.location_accurate === true  ? '📍 Precise address' :
+        v.location_accurate === false ? '⚠️ Approximate (postcode centroid) — consider correcting coordinates' :
+                                        '○ Location not yet geocoded'}
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Website</label><input type="url" id="f-website" value="${esc(v.website||'')}" placeholder="https://…"></div>
+      <div class="field"><label>Facebook page</label><input type="url" id="f-facebook_url" value="${esc(v.facebook_url||'')}" placeholder="https://facebook.com/…"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Email</label><input type="email" id="f-email" value="${esc(v.email||'')}" placeholder="hello@example.com"></div>
+      <div class="field"><label>Phone</label><input type="tel" id="f-phone" value="${esc(v.phone||'')}" placeholder="01234 567890"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Shire</label><select id="f-shire_id">${shireSel}</select></div>
+      <div class="field"></div>
+    </div>
+
+    <hr class="section-divider">
+    <div class="field-row">
+      <div class="field"><label>Photo</label>
+        <div id="class-photo-preview" style="margin-bottom:6px">${v.photo_url ? `<div class="photo-thumb"><img src="${v.photo_url}"><button class="rm" onclick="clearClassPhoto()">✕</button></div>` : ''}</div>
+        <input type="hidden" id="f-photo_url" value="${v.photo_url||''}">
+        <input type="file" id="f-photo-file" accept="image/*" onchange="previewClassPhoto(this)">
+      </div>
+      <div class="field"><label>Status</label><div class="chips-field">${statusChips}</div></div>
+    </div>
+  `
+}
+
+function previewClassPhoto(input) {
+  if (!input.files[0]) return
+  const url = URL.createObjectURL(input.files[0])
+  document.getElementById('class-photo-preview').innerHTML =
+    `<div class="photo-thumb"><img src="${url}"><button class="rm" onclick="clearClassPhoto()">✕</button></div>`
+}
+function clearClassPhoto() {
+  document.getElementById('f-photo_url').value = ''
+  document.getElementById('class-photo-preview').innerHTML = ''
+  document.getElementById('f-photo-file').value = ''
+}
+
+function setShireFromComponents(components) {
+  const county = components.find(c => c.types.includes('administrative_area_level_2'))?.long_name ?? ''
+  if (!county) return
+  const normalized = county.toLowerCase().replace(/\s+/g, '-')
+  const match = SHIRES.find(([id]) => id === normalized)
+  if (match) {
+    const sel = document.getElementById('f-shire_id')
+    if (sel && sel.value !== match[0]) { sel.value = match[0]; toast(`Shire set to ${match[1]} ✓`) }
+  }
+}
+
+async function geocodeClass() {
+  const parts = [
+    document.getElementById('f-street').value,
+    document.getElementById('f-city').value,
+    document.getElementById('f-postcode').value,
+  ].filter(Boolean).join(', ')
+  if (!parts) { toast('Enter an address first'); return }
+  try {
+  const controller = new AbortController()
+  setTimeout(() => controller.abort(), 6000)
+  const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(parts)}&key=${MAPS_KEY}`, { signal: controller.signal })
+  const json = await res.json()
+  if (json.results?.[0]) {
+    const loc = json.results[0].geometry.location
+    document.getElementById('f-lat').value = loc.lat
+    document.getElementById('f-lng').value = loc.lng
+    setShireFromComponents(json.results[0].address_components ?? [])
+    toast('Coordinates found ✓')
+  } else { toast('Address not found') }
+  } catch { toast('Location lookup timed out') }
+}
+
+async function detectShireFromCoords() {
+  const lat = document.getElementById('f-lat')?.value
+  const lng = document.getElementById('f-lng')?.value
+  if (!lat || !lng) return
+  try {
+    const controller = new AbortController()
+    setTimeout(() => controller.abort(), 6000)
+    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${MAPS_KEY}`, { signal: controller.signal })
+    const json = await res.json()
+    const result = json.results?.find(r => r.types?.includes('postal_code') || r.types?.includes('locality'))
+      ?? json.results?.[0]
+    if (result) setShireFromComponents(result.address_components ?? [])
+  } catch {}
+}
+
+async function savePanel() {
+  if (panelMode === 'class') await saveClass()
+  else if (panelMode === 'park') await savePark()
+  else if (panelMode === 'user') await saveUser()
+}
+
+async function saveClass() {
+  const name = document.getElementById('f-name').value.trim()
+  if (!name) { toast('Name is required'); return }
+  const savingStatus = document.getElementById('f-status').value
+  if (savingStatus === 'approved' && !numOrNull('f-lat')) {
+    toast('Cannot publish — add coordinates first (use the 📍 Geocode button).', true); return
+  }
+
+  document.getElementById('panel-save-btn').textContent = 'Saving…'
+  document.getElementById('panel-save-btn').disabled = true
+
+  try {
+    let photoUrl = document.getElementById('f-photo_url').value
+    const file = document.getElementById('f-photo-file').files[0]
+    if (file) {
+      const ext = file.name.split('.').pop()
+      const path = `${Date.now()}.${ext}`
+      const { data: up, error: ue } = await db.storage.from('class-images').upload(path, file, { contentType: file.type })
+      if (ue) { toast('Photo upload failed: ' + ue.message); return }
+      const { data: { publicUrl } } = db.storage.from('class-images').getPublicUrl(up.path)
+      photoUrl = publicUrl
+    }
+
+    const street = document.getElementById('f-street').value.trim()
+    const city = document.getElementById('f-city').value.trim()
+    const postcode = document.getElementById('f-postcode').value.trim().toUpperCase()
+    const address = [street, city, postcode].filter(Boolean).join(', ') || null
+
+    const payload = {
+      name,
+      description: document.getElementById('f-description').value.trim() || null,
+      category: document.getElementById('f-category').value || null,
+      ...rpGetValues(),
+      time_start: document.getElementById('f-time_start').value || null,
+      time_end: document.getElementById('f-time_end').value || null,
+      age_min_months: numOrNull('f-age_min_months'),
+      age_max_months: numOrNull('f-age_max_months'),
+      price: numOrNull('f-price'),
+      venue_name: document.getElementById('f-venue_name').value.trim() || null,
+      street: street || null, city: city || null, postcode: postcode || null, address,
+      lat: numOrNull('f-lat'), lng: numOrNull('f-lng'),
+      location_accurate: (numOrNull('f-lat') !== null) ? true : null,
+      photo_url: photoUrl || null,
+      website: document.getElementById('f-website').value.trim() || null,
+      facebook_url: document.getElementById('f-facebook_url').value.trim() || null,
+      email: document.getElementById('f-email').value.trim() || null,
+      phone: document.getElementById('f-phone').value.trim() || null,
+      shire_id: document.getElementById('f-shire_id').value || null,
+      status: document.getElementById('f-status').value,
+      booking_type: document.getElementById('f-booking_type').value || null,
+      organiser: document.getElementById('f-organiser').value.trim() || null,
+      max_capacity: numOrNull('f-max_capacity'),
+    }
+    const id = document.getElementById('f-id').value
+    if (id) payload.id = id
+
+    const { data, error } = await db.from('classes').upsert(payload).select().single()
+    if (error) { toast('Error: ' + error.message); return }
+    if (id) classes = classes.map(c => c.id === id ? data : c)
+    else classes = [data, ...classes]
+    renderClasses()
+    closePanel()
+    toast('Saved ✓')
+  } catch (e) {
+    toast('Save failed: ' + (e?.message ?? 'please try again'))
+  } finally {
+    resetSaveBtn()
+  }
+}
+
+async function deleteFromPanel() {
+  if (!panelItem) return
+
+  if (panelMode === 'user') {
+    await deleteUserAccount()
+    return
+  }
+
+  if (!confirm(`Delete "${panelItem.name}"? This cannot be undone.`)) return
+  if (panelMode === 'class') {
+    await db.from('classes').delete().eq('id', panelItem.id)
+    classes = classes.filter(c => c.id !== panelItem.id)
+    renderClasses()
+  } else {
+    await db.from('parks').delete().eq('id', panelItem.id)
+    parks = parks.filter(p => p.id !== panelItem.id)
+    renderParks()
+  }
+  closePanel()
+  toast('Deleted')
+}
+
+async function deleteUserAccount() {
+  const u = panelItem
+  const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || 'this user'
+  if (!confirm(`Delete ${name} and all their data?\n\nThis will remove:\n• Their profile\n• All their classes\n• All their conversations and messages\n\nThis cannot be undone.`)) return
+
+  const btn = document.getElementById('panel-delete-btn')
+  btn.textContent = 'Deleting…'; btn.disabled = true
+
+  const { data: { session } } = await db.auth.getSession()
+  const res = await fetch('https://emzlwkgpmckxqehsefyq.supabase.co/functions/v1/delete-user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ userId: u.id }),
+  })
+
+  btn.textContent = 'Delete account'; btn.disabled = false
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    const errs = body.errors ? body.errors.join(', ') : `HTTP ${res.status}`
+    toast('Delete failed — ' + errs)
+    return
+  }
+
+  users = users.filter(x => x.id !== u.id)
+  renderUsers()
+  closePanel()
+  toast(`${name} deleted ✓`)
+}
+
+// ── PARKS ────────────────────────────────────────────────────────
+let pendingRatings = []
+
+async function loadParks() {
+  const [{ data: parkData }, { data: pendingData }] = await Promise.all([
+    db.from('parks').select('*').order('created_at', { ascending: false }),
+    db.from('park_rating_submissions').select('*, park:parks(name)').eq('status', 'pending').order('created_at', { ascending: false }),
+  ])
+  parks = parkData || []
+  pendingRatings = pendingData || []
+  renderParks()
+  renderPendingRatings()
+}
+
+function renderPendingRatings() {
+  const section = document.getElementById('pending-ratings-section')
+  const tbody = document.getElementById('pending-ratings-tbody')
+  if (!pendingRatings.length) { section.style.display = 'none'; return }
+  section.style.display = 'block'
+  tbody.innerHTML = pendingRatings.map(s => {
+    const fmtScore = (v) => v != null ? `<span class="badge badge-ok">${v}/5</span>` : '<span style="color:#9eada9">—</span>'
+    const date = new Date(s.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short' })
+    return `<tr>
+      <td><div class="td-name">${esc(s.park?.name || s.park_id)}</div></td>
+      <td>${fmtScore(s.score_safety)}</td>
+      <td>${fmtScore(s.score_equipment)}</td>
+      <td>${fmtScore(s.score_upkeep)}</td>
+      <td>${fmtScore(s.score_vibe)}</td>
+      <td>${fmtScore(s.score_busy)}</td>
+      <td><span class="td-meta">${date}</span></td>
+      <td><div class="actions-cell">
+        <button class="btn btn-ok btn-sm" onclick="approveParkRating('${s.id}','${s.park_id}',${JSON.stringify(s)})">Approve</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectParkRating('${s.id}')">Reject</button>
+      </div></td>
+    </tr>`
+  }).join('')
+}
+
+async function approveParkRating(submissionId, parkId, sub) {
+  const scores = {
+    score_safety: sub.score_safety,
+    score_equipment: sub.score_equipment,
+    score_upkeep: sub.score_upkeep,
+    score_vibe: sub.score_vibe,
+    score_busy: sub.score_busy,
+  }
+  await Promise.all([
+    db.from('park_rating_submissions').update({ status: 'approved' }).eq('id', submissionId),
+    db.from('parks').update(scores).eq('id', parkId),
+  ])
+  pendingRatings = pendingRatings.filter(s => s.id !== submissionId)
+  parks = parks.map(p => p.id === parkId ? { ...p, ...scores } : p)
+  renderPendingRatings()
+  renderParks()
+  toast('Rating approved ✓')
+}
+
+async function rejectParkRating(submissionId) {
+  await db.from('park_rating_submissions').update({ status: 'rejected' }).eq('id', submissionId)
+  pendingRatings = pendingRatings.filter(s => s.id !== submissionId)
+  renderPendingRatings()
+  toast('Rating rejected')
+}
+
+function setParkFilter(f) {
+  parkFilter = f
+  document.querySelectorAll('[data-pstatus]').forEach(c => c.classList.toggle('active', c.dataset.pstatus === f))
+  renderParks()
+}
+
+function isUnrated(p) {
+  return p.score_safety == null && p.score_equipment == null &&
+    p.score_upkeep == null && p.score_vibe == null && p.score_busy == null
+}
+
+function renderParkStats() {
+  const deleted = parks.filter(p => p.status === 'deleted').length
+  const total = parks.length - deleted
+  const rated = parks.filter(p => p.status !== 'deleted' && !isUnrated(p)).length
+  const unrated = parks.filter(p => p.status !== 'deleted' && isUnrated(p)).length
+  const f = parkFilter
+  document.getElementById('park-stats').innerHTML = `
+    <div class="stat-card clickable ${f==='all'?'active':''}" onclick="setParkFilter('all')"><div class="stat-value">${total}</div><div class="stat-label">Total</div></div>
+    <div class="stat-card clickable ${f==='approved'?'active':''}" onclick="setParkFilter('approved')"><div class="stat-value">${rated}</div><div class="stat-label">Rated</div></div>
+    <div class="stat-card clickable ${f==='unrated'?'active':''}" onclick="setParkFilter('unrated')"><div class="stat-value warn">${unrated}</div><div class="stat-label">Unrated</div></div>
+    <div class="stat-card clickable ${f==='deleted'?'active':''}" onclick="setParkFilter('deleted')"><div class="stat-value danger">${deleted}</div><div class="stat-label">Deleted</div></div>
+  `
+}
+
+function renderParks() {
+  renderParkStats()
+  const q = document.getElementById('park-search').value.toLowerCase()
+  let list = parks
+  if (parkFilter === 'approved') list = list.filter(p => p.status === 'approved' && !isUnrated(p))
+  else if (parkFilter === 'unrated') list = list.filter(p => isUnrated(p))
+  else if (parkFilter === 'deleted') list = list.filter(p => p.status === 'deleted')
+  else list = list.filter(p => p.status !== 'deleted')
+  if (q) list = list.filter(p => p.name.toLowerCase().includes(q) || (p.address||'').toLowerCase().includes(q))
+
+  const tbody = document.getElementById('parks-tbody')
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No parks found</td></tr>'; return }
+  tbody.innerHTML = list.map(p => {
+    const avg = avgScore(p)
+    const statusBadge = p.status === 'deleted' ? 'badge-err' : isUnrated(p) ? 'badge-blue' : 'badge-ok'
+    const statusLabel = p.status === 'deleted' ? 'Deleted' : isUnrated(p) ? 'Unrated' : 'Approved'
+    return `<tr class="clickable" onclick="openParkPanel('${p.id}')">
+      <td><div class="td-name">${esc(p.name)}</div></td>
+      <td><div class="td-meta">${esc(p.address||'—')}</div></td>
+      <td>${avg !== null ? `<span class="badge badge-ok">⭐ ${avg.toFixed(1)}</span>` : '—'}</td>
+      <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+      <td><div class="actions-cell" onclick="event.stopPropagation()">
+        ${p.status !== 'deleted'
+          ? `<button class="btn btn-danger btn-sm" onclick="quickParkStatus('${p.id}','deleted')">Delete</button>`
+          : `<button class="btn btn-ok btn-sm" onclick="quickParkStatus('${p.id}','approved')">Restore</button>
+             <button class="btn btn-danger btn-sm" onclick="hardDeletePark('${p.id}','${esc(p.name)}')">Remove permanently</button>`}
+        <button class="btn btn-ghost btn-sm" onclick="openParkPanel('${p.id}')">Edit</button>
+      </div></td>
+    </tr>`
+  }).join('')
+}
+
+function avgScore(p) {
+  const vals = [p.score_safety, p.score_equipment, p.score_upkeep, p.score_vibe, p.score_busy].filter(v => v != null)
+  return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null
+}
+
+async function quickParkStatus(id, status) {
+  await db.from('parks').update({ status }).eq('id', id)
+  parks = parks.map(p => p.id === id ? { ...p, status } : p)
+  renderParks()
+  toast(status === 'deleted' ? 'Park deleted' : 'Park restored ✓')
+}
+
+async function hardDeletePark(id, name) {
+  if (!confirm(`Permanently remove "${name}" from the database?\n\nThis cannot be undone.`)) return
+  const { error } = await db.from('parks').delete().eq('id', id)
+  if (error) { toast('Delete failed: ' + error.message, true); return }
+  parks = parks.filter(p => p.id !== id)
+  renderParks()
+  toast('Park permanently removed')
+}
+
+function openParkPanel(id) {
+  const park = id ? parks.find(p => p.id === id) : null
+  panelMode = 'park'; panelItem = park
+  document.getElementById('panel-title').textContent = park ? `Edit: ${park.name}` : 'Add park'
+  document.getElementById('panel-delete-btn').style.display = park ? 'inline-flex' : 'none'
+  document.getElementById('panel-body').innerHTML = buildParkForm(park)
+  openPanel()
+}
+
+function buildParkForm(p) {
+  const v = p || {}
+  const existingPhotos = (v.photo_urls || []).map((url, i) =>
+    `<div class="photo-thumb"><img src="${url}"><button class="rm" onclick="removeParkPhoto(${i})">✕</button></div>`
+  ).join('')
+  const tagChecks = PARK_TAGS.map(t => {
+    const checked = (v.tags||[]).includes(t) ? 'checked' : ''
+    const tagId = `tag-${t.replace(/\s+/g,'-')}`
+    return `<span><input type="checkbox" class="tag-cb" id="${tagId}" value="${t}" ${checked}><label class="tag-label" for="${tagId}">${t}</label></span>`
+  }).join('')
+  const scores = ['score_safety','score_equipment','score_upkeep','score_vibe','score_busy']
+  const scoreLabels = { score_safety:'Safety', score_equipment:'Equipment', score_upkeep:'Upkeep', score_vibe:'Vibe', score_busy:'How Busy' }
+  const scorePickers = scores.map(s =>
+    `<div class="score-row"><span>${scoreLabels[s]}</span><div class="score-dots" id="dots-${s}">
+      ${[1,2,3,4,5].map(n => `<div class="score-dot ${v[s]===n?'active':''}" onclick="setScore('${s}',${n})">${n}</div>`).join('')}
+    </div></div>`
+  ).join('')
+
+  return `
+    <input type="hidden" id="f-id" value="${v.id||''}">
+    <input type="hidden" id="f-photo_urls" value="${esc(JSON.stringify(v.photo_urls||[]))}">
+
+    <div class="field"><label>Name *</label><input id="f-name" value="${esc(v.name||'')}" placeholder="e.g. Arbury Court Play Park" onblur="autoGeocodePark()"></div>
+    <div class="field"><label>Description</label><textarea id="f-description">${esc(v.description||'')}</textarea></div>
+    <div class="field"><label>Highlight tag</label><input id="f-highlight_tag" value="${esc(v.highlight_tag||'')}" placeholder="e.g. Great for toddlers"></div>
+    <div class="field"><label>Address</label><input id="f-address" value="${esc(v.address||'')}" placeholder="10 High Street, Cambridge, CB1 1AB" onblur="autoGeocodePark()"></div>
+    <div class="field-row">
+      <div class="field"><label>Latitude</label><input type="number" id="f-lat" value="${v.lat??''}" step="any" placeholder="auto-filled"></div>
+      <div class="field"><label>Longitude</label><input type="number" id="f-lng" value="${v.lng??''}" step="any" placeholder="auto-filled"></div>
+    </div>
+    <div id="geocode-status" style="font-size:12px;color:var(--on-variant);margin-bottom:12px">${v.lat ? '📍 Location confirmed' : 'Location will be found automatically from address or name.'}</div>
+
+    <hr class="section-divider">
+    <div class="field"><label>Photos</label>
+      <div class="photo-preview" id="park-photos">${existingPhotos}</div>
+      <input type="file" id="f-park-photos" accept="image/*" multiple style="margin-top:8px" onchange="queueParkPhotos(this)">
+      <div id="park-photos-queue" class="photo-preview" style="margin-top:8px"></div>
+    </div>
+
+    <hr class="section-divider">
+    <div class="field"><label>Tags</label><div class="tags-grid">${tagChecks}</div></div>
+
+    <hr class="section-divider">
+    <div class="field"><label>Scores (1–5, click to toggle)</label>
+      <div style="margin-top:8px; display:flex; flex-direction:column; gap:10px">${scorePickers}</div>
+    </div>
+
+    <hr class="section-divider">
+    <div class="field"><label>Status</label>
+      <select id="f-status">
+        <option value="approved" ${(v.status||'approved')==='approved'?'selected':''}>Approved</option>
+        <option value="deleted"  ${v.status==='deleted'?'selected':''}>Deleted</option>
+      </select>
+    </div>
+  `
+}
+
+const parkScores = {}
+function setScore(field, val) {
+  const current = parseInt(document.querySelector(`#dots-${field} .score-dot.active`)?.textContent||'0')
+  const newVal = current === val ? null : val
+  document.querySelectorAll(`#dots-${field} .score-dot`).forEach((d,i) => d.classList.toggle('active', i+1 === newVal))
+  parkScores[field] = newVal
+}
+
+function removeParkPhoto(idx) {
+  const urls = JSON.parse(document.getElementById('f-photo_urls').value)
+  urls.splice(idx, 1)
+  document.getElementById('f-photo_urls').value = JSON.stringify(urls)
+  document.getElementById('park-photos').innerHTML = urls.map((url,i) =>
+    `<div class="photo-thumb"><img src="${url}"><button class="rm" onclick="removeParkPhoto(${i})">✕</button></div>`
+  ).join('')
+}
+
+let parkPhotoFiles = []
+function queueParkPhotos(input) {
+  parkPhotoFiles = Array.from(input.files)
+  const preview = document.getElementById('park-photos-queue')
+  preview.innerHTML = parkPhotoFiles.map(f =>
+    `<div class="photo-thumb"><img src="${URL.createObjectURL(f)}"></div>`
+  ).join('')
+}
+
+async function geocodeParkQuery(query) {
+  if (!query) return null
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 6000) // 6s hard limit
+    const res  = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query + ', UK')}&key=${MAPS_KEY}`,
+      { signal: controller.signal }
+    )
+    clearTimeout(timeout)
+    const json = await res.json()
+    if (json.results?.[0]) return json.results[0].geometry.location
+  } catch {}
+  return null
+}
+
+async function autoGeocodePark(force = false) {
+  const latEl = document.getElementById('f-lat')
+  const lngEl = document.getElementById('f-lng')
+  const statusEl = document.getElementById('geocode-status')
+  if (!latEl) return
+
+  // Skip if already have coords (unless forced)
+  if (!force && latEl.value && lngEl.value) return
+
+  const address = document.getElementById('f-address').value.trim()
+  const name    = document.getElementById('f-name').value.trim()
+  const query   = address || name
+  if (!query) return
+
+  if (statusEl) statusEl.textContent = '🔍 Finding location…'
+  const loc = await geocodeParkQuery(query)
+  if (loc) {
+    latEl.value = loc.lat
+    lngEl.value = loc.lng
+    if (statusEl) statusEl.textContent = '📍 Location confirmed'
+  } else {
+    if (statusEl) statusEl.textContent = '⚠️ Location not found — check address or name'
+  }
+}
+
+async function savePark() {
+  const name = document.getElementById('f-name').value.trim()
+  if (!name) { toast('Name is required'); return }
+  document.getElementById('panel-save-btn').textContent = 'Saving…'
+  document.getElementById('panel-save-btn').disabled = true
+
+  try {
+    // Auto-geocode if coordinates are missing
+    let lat = parseFloat(document.getElementById('f-lat').value)
+    let lng = parseFloat(document.getElementById('f-lng').value)
+    if (!lat || !lng) {
+      document.getElementById('panel-save-btn').textContent = 'Finding location…'
+      await autoGeocodePark(true)
+      lat = parseFloat(document.getElementById('f-lat').value)
+      lng = parseFloat(document.getElementById('f-lng').value)
+    }
+    // Block save if still no coordinates after geocoding
+    if (!lat || !lng) {
+      toast('Location not found — check the address or name and try again')
+      return
+    }
+
+    let photoUrls = JSON.parse(document.getElementById('f-photo_urls').value)
+    for (const file of parkPhotoFiles) {
+      const ext = file.name.split('.').pop()
+      const path = `park-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { data: up, error: ue } = await db.storage.from('park-photos').upload(path, file, { contentType: file.type })
+      if (!ue) {
+        const { data: { publicUrl } } = db.storage.from('park-photos').getPublicUrl(up.path)
+        photoUrls.push(publicUrl)
+      }
+    }
+
+    const scores = {}
+    ;['score_safety','score_equipment','score_upkeep','score_vibe','score_busy'].forEach(s => {
+      const active = document.querySelector(`#dots-${s} .score-dot.active`)
+      scores[s] = active ? parseInt(active.textContent) : (parkScores[s] ?? panelItem?.[s] ?? null)
+    })
+
+    const tags = Array.from(document.querySelectorAll('.tag-cb:checked')).map(cb => cb.value)
+
+    const payload = {
+      name,
+      description:   document.getElementById('f-description').value.trim() || null,
+      highlight_tag: document.getElementById('f-highlight_tag').value.trim() || null,
+      address:       document.getElementById('f-address').value.trim() || null,
+      lat, lng,
+      photo_urls: photoUrls,
+      tags: tags.length ? tags : null,
+      status: document.getElementById('f-status').value,
+      ...scores,
+    }
+    const id = document.getElementById('f-id').value
+    if (id) payload.id = id
+
+    parkPhotoFiles = []
+    const { data, error } = await db.from('parks').upsert(payload).select().single()
+    if (error) { toast('Error: ' + error.message); return }
+    if (id) parks = parks.map(p => p.id === id ? data : p)
+    else parks = [data, ...parks]
+    renderParks()
+    closePanel()
+    toast('Saved ✓')
+  } catch (e) {
+    toast('Error: ' + (e.message || 'Something went wrong'))
+  } finally {
+    resetSaveBtn()
+  }
+}
+
+// ── USERS ────────────────────────────────────────────────────────
+async function loadUsers() {
+  const [{ data: profiles }, { data: chatUsers }] = await Promise.all([
+    db.from('profiles').select('*').order('created_at', { ascending: false }),
+    db.from('chat_users').select('id, last_seen_at'),
+  ])
+  const seenMap = {}
+  ;(chatUsers || []).forEach(u => { seenMap[u.id] = u.last_seen_at })
+  users = (profiles || []).map(u => ({ ...u, last_seen_at: seenMap[u.id] || null }))
+  renderUsers()
+}
+
+function renderUserStats() {
+  const total = users.length
+  const admins = users.filter(u => u.is_admin).length
+  document.getElementById('user-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Total users</div></div>
+    <div class="stat-card"><div class="stat-value">${admins}</div><div class="stat-label">Admins</div></div>
+  `
+}
+
+function fmtLastSeen(iso) {
+  if (!iso) return '<span style="color:var(--on-variant);font-size:12px">Never</span>'
+  const d = new Date(iso), now = new Date()
+  const diff = Math.floor((now - d) / 60000)
+  if (diff < 2)   return '<span class="badge badge-ok">Just now</span>'
+  if (diff < 60)  return `<span class="td-meta">${diff}m ago</span>`
+  const hrs = Math.floor(diff / 60)
+  if (hrs < 24)   return `<span class="td-meta">${hrs}h ago</span>`
+  const days = Math.floor(hrs / 24)
+  if (days < 7)   return `<span class="td-meta">${days}d ago</span>`
+  return `<span class="td-meta">${d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</span>`
+}
+
+function renderUsers() {
+  renderUserStats()
+  const tbody = document.getElementById('users-tbody')
+  if (!users.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users</td></tr>'; return }
+  tbody.innerHTML = users.map(u => {
+    const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || 'No name'
+    const initials = [(u.first_name||'?')[0], (u.last_name||'')[0]].filter(Boolean).join('').toUpperCase() || '?'
+    const joined = new Date(u.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+    return `<tr class="clickable" onclick="openUserPanel('${u.id}')">
+      <td><div class="user-cell">
+        <div class="avatar" style="background:${u.avatar_color||'#006a62'}">${initials}</div>
+        <span class="td-name">${esc(name)}</span>
+      </div></td>
+      <td><span class="td-meta">${joined}</span></td>
+      <td>${fmtLastSeen(u.last_seen_at)}</td>
+      <td><span class="badge ${u.is_admin ? 'badge-ok' : 'badge-grey'}">${u.is_admin ? 'Admin' : 'User'}</span></td>
+      <td><div class="actions-cell" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm" onclick="openUserPanel('${u.id}')">View</button>
+      </div></td>
+    </tr>`
+  }).join('')
+}
+
+async function toggleAdmin(userId, isAdmin) {
+  const { error } = await db.from('profiles').update({ is_admin: isAdmin }).eq('id', userId)
+  if (error) { toast('Error: ' + error.message); return }
+  users = users.map(u => u.id === userId ? { ...u, is_admin: isAdmin } : u)
+  toast(isAdmin ? 'Admin granted ✓' : 'Admin removed')
+}
+
+// ── ORGANISERS ───────────────────────────────────────────────────
+let organisers = []
+
+async function loadOrganisers() {
+  const { data: cls } = await db.from('classes').select('user_id, status, created_at, organiser').not('user_id', 'is', null)
+  const { data: profiles } = await db.from('profiles').select('id, first_name, last_name, avatar_color, created_at')
+
+  const profileMap = {}
+  ;(profiles || []).forEach(p => { profileMap[p.id] = p })
+
+  const map = {}
+  ;(cls || []).forEach(c => {
+    if (!map[c.user_id]) {
+      map[c.user_id] = { user_id: c.user_id, live: 0, pending: 0, rejected: 0, last_submission: null, display_name: c.organiser || null }
+    }
+    const entry = map[c.user_id]
+    if (c.status === 'approved') entry.live++
+    else if (c.status === 'pending') entry.pending++
+    else if (c.status === 'rejected') entry.rejected++
+    if (!entry.last_submission || c.created_at > entry.last_submission) entry.last_submission = c.created_at
+    const profile = profileMap[c.user_id]
+    if (profile) {
+      const name = [profile.first_name, profile.last_name].filter(Boolean).join(' ')
+      if (name) entry.display_name = name
+      entry.avatar_color = profile.avatar_color
+      entry.profile_created_at = profile.created_at
+    }
+  })
+  organisers = Object.values(map).sort((a, b) => (b.last_submission || '').localeCompare(a.last_submission || ''))
+  renderOrganisers()
+}
+
+function renderOrganisers() {
+  const total   = organisers.length
+  const withLive = organisers.filter(o => o.live > 0).length
+  const withPending = organisers.filter(o => o.pending > 0).length
+  document.getElementById('organiser-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Total organisers</div></div>
+    <div class="stat-card"><div class="stat-value ok">${withLive}</div><div class="stat-label">With live classes</div></div>
+    <div class="stat-card"><div class="stat-value ${withPending > 0 ? 'warn' : ''}">${withPending}</div><div class="stat-label">With pending classes</div></div>
+  `
+  const tbody = document.getElementById('organisers-tbody')
+  if (!organisers.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No organisers yet</td></tr>'; return }
+  tbody.innerHTML = organisers.map(o => {
+    const name = o.display_name || o.user_id.slice(0, 8) + '…'
+    const initials = name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase() || '?'
+    const last = o.last_submission ? new Date(o.last_submission).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : '—'
+    return `<tr class="clickable" onclick="filterClassesByOrganiser('${o.user_id}')">
+      <td><div class="user-cell">
+        <div class="avatar" style="background:${o.avatar_color||'#9395d3'}">${initials}</div>
+        <span class="td-name">${esc(name)}</span>
+      </div></td>
+      <td><span class="badge badge-ok">${o.live}</span></td>
+      <td>${o.pending > 0 ? `<span class="badge badge-warn">${o.pending}</span>` : `<span class="td-meta">0</span>`}</td>
+      <td>${o.rejected > 0 ? `<span class="badge badge-err">${o.rejected}</span>` : `<span class="td-meta">0</span>`}</td>
+      <td><span class="td-meta">${last}</span></td>
+      <td><div class="actions-cell" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm" onclick="filterClassesByOrganiser('${o.user_id}')">View classes</button>
+      </div></td>
+    </tr>`
+  }).join('')
+}
+
+function filterClassesByOrganiser(userId) {
+  switchTab('classes')
+  const org = organisers.find(o => o.user_id === userId)
+  const name = org?.display_name || userId
+  const q = document.getElementById('class-search')
+  q.value = name.split(' ')[0]
+  classFilter = 'all'
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'classes'))
+  classes = classes.filter(c => c.user_id === userId || true)
+  const prevClasses = classes
+  const filtered = classes.filter(c => c.user_id === userId)
+  const tbody = document.getElementById('classes-tbody')
+  if (!filtered.length) { renderClasses(); return }
+  renderClassStats()
+  const { dupIds } = buildDuplicateMap()
+  tbody.innerHTML = filtered.map(c => {
+    const statusBadge = c.status === 'approved' ? 'badge-ok' : c.status === 'pending' ? 'badge-warn' : 'badge-err'
+    const statusLabel = c.status === 'approved' ? 'Live' : c.status === 'pending' ? 'Pending' : 'Rejected'
+    const schedule = [c.day_of_week, c.time_start].filter(Boolean).join(' · ')
+    const isDup = dupIds.has(c.id)
+    return `<tr class="clickable" onclick="openClassPanel('${c.id}')" ${isDup?'style="background:#fff8f0"':''}>
+      <td><div class="td-name" style="display:flex;align-items:center;gap:6px">${esc(c.name)}${isDup?'<span class="badge badge-warn" style="font-size:10px;padding:2px 7px">Duplicate</span>':''}</div>
+          <div class="td-meta">${esc(c.venue_name||'')}</div></td>
+      <td><span class="td-meta">${esc(c.category||'—')}</span></td>
+      <td><div class="td-meta">${esc(schedule||'—')}</div></td>
+      <td><div class="td-meta">${esc(c.shire_id||'—')}</div></td>
+      <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+      <td><div class="actions-cell" onclick="event.stopPropagation()">
+        ${c.status === 'pending' ? `<button class="btn btn-ok btn-sm" onclick="quickClassStatus('${c.id}','approved')">Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="quickClassStatus('${c.id}','rejected')">Reject</button>` : ''}
+        ${c.status === 'approved' ? `<button class="btn btn-warn btn-sm" onclick="quickClassStatus('${c.id}','pending')">Unpublish</button>` : ''}
+      </div></td>
+    </tr>`
+  }).join('')
+}
+
+// ── EVENT TYPE TOGGLE ────────────────────────────────────────────
+// setEventType replaced by rpSetEventType in recurrence-picker.js
+
+// ── USER PANEL ───────────────────────────────────────────────────
+function openUserPanel(id) {
+  const user = users.find(u => u.id === id)
+  panelMode = 'user'; panelItem = user
+  const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'No name'
+  document.getElementById('panel-title').textContent = `User: ${name}`
+  document.getElementById('panel-delete-btn').style.display = 'inline-flex'
+  document.getElementById('panel-delete-btn').textContent = 'Delete account'
+  document.getElementById('panel-body').innerHTML = buildUserForm(user)
+  openPanel()
+}
+
+function buildUserForm(u) {
+  const v = u || {}
+  const name = [v.first_name, v.last_name].filter(Boolean).join(' ') || 'No name'
+  const initials = [(v.first_name||'?')[0], (v.last_name||'')[0]].filter(Boolean).join('').toUpperCase() || '?'
+  const knownFields = new Set(['id','first_name','last_name','avatar_color','is_admin','created_at','updated_at'])
+  const extraKeys = Object.keys(v).filter(k => !knownFields.has(k) && v[k] != null && v[k] !== '')
+  const extraFields = extraKeys.map(k => `
+    <div class="field">
+      <label>${k.replace(/_/g,' ')}</label>
+      <div style="padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;background:var(--surface-low);word-break:break-all">${esc(String(v[k]))}</div>
+    </div>`).join('')
+  return `
+    <input type="hidden" id="f-id" value="${v.id||''}">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--surface-low);border-radius:var(--r)">
+      <div class="avatar" style="background:${v.avatar_color||'#006a62'};width:56px;height:56px;font-size:20px;flex-shrink:0">${initials}</div>
+      <div>
+        <div style="font-weight:800;font-size:18px">${esc(name)}</div>
+        <div style="font-size:11px;color:var(--on-variant);margin-top:4px;font-family:monospace">${esc(v.id||'')}</div>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>First name</label><input id="f-first_name" value="${esc(v.first_name||'')}"></div>
+      <div class="field"><label>Last name</label><input id="f-last_name" value="${esc(v.last_name||'')}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Joined</label>
+        <div style="padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;background:var(--surface-low)">${v.created_at ? new Date(v.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—'}</div>
+      </div>
+      <div class="field"><label>Last seen</label>
+        <div style="padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:14px;background:var(--surface-low)">${v.last_seen_at ? new Date(v.last_seen_at).toLocaleString('en-GB',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : 'Never'}</div>
+      </div>
+    </div>
+    <div class="field"><label>Admin access</label>
+      <label class="toggle-switch" style="display:inline-flex">
+        <input type="checkbox" id="f-is_admin" ${v.is_admin?'checked':''}>
+        <span class="slider"></span>
+      </label>
+    </div>
+    ${extraFields ? `<hr class="section-divider"><div style="font-size:11px;font-weight:700;color:var(--on-variant);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Additional profile data</div>${extraFields}` : ''}
+  `
+}
+
+async function saveUser() {
+  const id = document.getElementById('f-id').value
+  if (!id) return
+  const payload = {
+    first_name: document.getElementById('f-first_name').value.trim() || null,
+    last_name: document.getElementById('f-last_name').value.trim() || null,
+    is_admin: document.getElementById('f-is_admin').checked,
+  }
+  const { error } = await db.from('profiles').update(payload).eq('id', id)
+  if (error) { toast('Error: ' + error.message); return }
+  users = users.map(u => u.id === id ? { ...u, ...payload } : u)
+  renderUsers()
+  closePanel()
+  toast('Saved ✓')
+}
+
+// ── PANEL HELPERS ────────────────────────────────────────────────
+function openPanel() {
+  const overlay = document.getElementById('panel-overlay')
+  overlay.style.display = 'flex'
+  requestAnimationFrame(() => overlay.classList.add('open'))
+}
+function closePanel() {
+  const overlay = document.getElementById('panel-overlay')
+  overlay.classList.remove('open')
+  setTimeout(() => { overlay.style.display = 'none'; panelMode = null; panelItem = null }, 260)
+}
+function handleOverlayClick(e) { if (e.target === e.currentTarget) closePanel() }
+
+function toggleChip(el, field, value, single) {
+  const hidden = document.getElementById(`f-${field}`)
+  if (single) {
+    document.querySelectorAll(`[onclick*="toggleChip(this,'${field}'"]`).forEach(c => c.classList.remove('active'))
+    if (hidden.value === value) { el.classList.remove('active'); hidden.value = '' }
+    else { el.classList.add('active'); hidden.value = value }
+  }
+}
+
+function toggleStatusChip(el, value) {
+  document.querySelectorAll('[onclick^="toggleStatusChip"]').forEach(c => {
+    c.classList.remove('active','active-ok','active-warn','active-err')
+  })
+  const cls = value === 'approved' ? 'active-ok' : value === 'pending' ? 'active-warn' : 'active-err'
+  el.classList.add(cls)
+  document.getElementById('f-status').value = value
+}
+
+function resetSaveBtn() {
+  const btn = document.getElementById('panel-save-btn')
+  btn.textContent = 'Save'; btn.disabled = false
+}
+
+function numOrNull(id) {
+  const v = document.getElementById(id).value
+  return v === '' ? null : parseFloat(v)
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+// ── PREVIEWS ─────────────────────────────────────────────────────
+const USER_OB_SCREENS = [
+  { label: 'Welcome',      emoji: '👋' },
+  { label: 'Avatar',       emoji: '🧑‍🎨' },
+  { label: 'Kids count',   emoji: '👶' },
+  { label: 'Kids details', emoji: '🎂' },
+  { label: 'Languages',    emoji: '🌍' },
+  { label: 'Interests',    emoji: '⭐' },
+]
+const APP_SCREENS = [
+  { label: 'Home',         emoji: '🏠', path: '/(tabs)/home' },
+  { label: 'Classes',      emoji: '📚', path: '/(tabs)/classes' },
+  { label: 'Parks map',    emoji: '🗺️', path: '/(tabs)/parks' },
+  { label: 'Circle',       emoji: '⭕', path: '/(tabs)/circle' },
+  { label: 'Chat',         emoji: '💬', path: '/(tabs)/chat' },
+  { label: 'Account',      emoji: '👤', path: '/(tabs)/account' },
+  { label: 'Class detail', emoji: '🎯', path: '/class/[id]' },
+  { label: 'Families',     emoji: '👨‍👩‍👧', path: '/families' },
+  { label: 'Notifications',emoji: '🔔', path: '/notifications' },
+  { label: 'Admin hub',    emoji: '🛡️', path: '/(tabs)/admin' },
+]
+
+let previewsRendered = false
+function renderPreviews() {
+  if (previewsRendered) return
+  previewsRendered = true
+
+  // User onboarding mini cards
+  document.getElementById('user-ob-screenshots').innerHTML = USER_OB_SCREENS.map(s => `
+    <div style="flex-shrink:0;width:80px;text-align:center">
+      <div style="width:80px;height:140px;background:linear-gradient(135deg,#e0f2f1,#ede8ff);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid var(--border)">
+        <span style="font-size:28px">${s.emoji}</span>
+        <span style="font-size:9px;font-weight:700;color:var(--teal-dark);text-align:center;padding:0 4px">${s.label}</span>
+      </div>
+    </div>`).join('<div style="flex-shrink:0;width:1px;background:var(--border);margin:0 4px;align-self:stretch"></div>')
+
+  // App screens grid
+  document.getElementById('preview-screens-grid').innerHTML = APP_SCREENS.map(s => `
+    <div style="background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center;cursor:default">
+      <div style="font-size:32px;margin-bottom:8px">${s.emoji}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--on-surface);margin-bottom:3px">${s.label}</div>
+      <div style="font-size:9px;font-family:monospace;color:var(--on-variant);background:var(--surface-low);padding:2px 6px;border-radius:4px;display:inline-block">${s.path}</div>
+    </div>`).join('')
+}
+
+// Organiser preview-only mode (no saving)
+if (new URLSearchParams(window.location.search).get('preview_onboarding') === '1') {
+  document.addEventListener('DOMContentLoaded', () => {
+    // Redirect to organiser with preview flag — admin.html doesn't host the onboarding
+    window.location.href = '/organiser?preview_onboarding=1'
+  })
+}
+
+// ── SUPPORT MESSAGES ─────────────────────────────────────────────
+const MLC_SUPPORT_ID = '00000000-0000-0000-0000-000000000001'
+let supportConvs = [], supportSelectedId = null, supportMsgs = [], supportChannel = null
+
+async function loadSupportMessages() {
+  const { data: convData } = await db.from('conversations')
+    .select(`id, user1_id, user2_id, last_message_at,
+      user1:chat_users!conversations_user1_id_fkey(id, display_name, avatar_color),
+      user2:chat_users!conversations_user2_id_fkey(id, display_name, avatar_color)`)
+    .or(`user1_id.eq.${MLC_SUPPORT_ID},user2_id.eq.${MLC_SUPPORT_ID}`)
+    .order('last_message_at', { ascending: false })
+
+  if (!convData?.length) { supportConvs = []; renderSupportMessages(); return }
+
+  const convIds = convData.map(c => c.id)
+  const { data: unread } = await db.from('messages')
+    .select('conversation_id')
+    .in('conversation_id', convIds)
+    .neq('sender_id', MLC_SUPPORT_ID)
+    .is('read_at', null)
+
+  const unreadMap = {}
+  ;(unread || []).forEach(m => { unreadMap[m.conversation_id] = (unreadMap[m.conversation_id] || 0) + 1 })
+
+  supportConvs = convData.map(c => ({
+    ...c,
+    other_user: c.user1_id === MLC_SUPPORT_ID ? c.user2 : c.user1,
+    unread_count: unreadMap[c.id] || 0,
+  }))
+  updateSupportBadge()
+  renderSupportMessages()
+}
+
+function updateSupportBadge() {
+  const total = supportConvs.reduce((s, c) => s + (c.unread_count || 0), 0)
+  const el = document.getElementById('support-unread-cnt')
+  if (el) { el.textContent = total; el.style.display = total > 0 ? 'inline' : 'none' }
+}
+
+function renderSupportMessages() {
+  const list = document.getElementById('support-conv-list')
+  if (!list) return
+  if (!supportConvs.length) {
+    list.innerHTML = '<div style="padding:48px 24px;text-align:center;color:var(--on-variant);font-size:13px">No messages yet</div>'
+    return
+  }
+  list.innerHTML = supportConvs.map(conv => {
+    const other = conv.other_user
+    const initials = other?.display_name ? other.display_name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?'
+    const isActive = conv.id === supportSelectedId
+    const hasUnread = conv.unread_count > 0
+    const date = conv.last_message_at ? formatSupportTime(conv.last_message_at) : ''
+    return `<div onclick="openSupportConv('${conv.id}')" style="padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border);background:${isActive?'#e0f2f1':'transparent'};transition:background .15s">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:38px;height:38px;border-radius:50%;background:${other?.avatar_color||'#9395d3'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:baseline;gap:6px">
+            <div style="font-size:13px;font-weight:${hasUnread?'800':'600'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(other?.display_name||'Unknown')}</div>
+            <div style="font-size:11px;color:var(--on-variant);flex-shrink:0">${date}</div>
+          </div>
+          ${hasUnread ? `<span style="background:var(--teal-dark);color:#fff;font-size:10px;font-weight:700;padding:1px 8px;border-radius:99px;margin-top:3px;display:inline-block">${conv.unread_count} new</span>` : ''}
+        </div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+async function openSupportConv(convId) {
+  supportSelectedId = convId
+  const { data } = await db.from('messages').select('*').eq('conversation_id', convId).order('created_at', { ascending: true })
+  supportMsgs = data || []
+
+  await db.from('messages').update({ read_at: new Date().toISOString() })
+    .eq('conversation_id', convId).neq('sender_id', MLC_SUPPORT_ID).is('read_at', null)
+
+  supportConvs = supportConvs.map(c => c.id === convId ? { ...c, unread_count: 0 } : c)
+  updateSupportBadge()
+  renderSupportMessages()
+  renderSupportThread()
+
+  if (supportChannel) db.removeChannel(supportChannel)
+  supportChannel = db.channel(`support:${convId}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` },
+      async payload => {
+        const msg = payload.new
+        if (!supportMsgs.find(m => m.id === msg.id)) {
+          supportMsgs = [...supportMsgs, msg]
+          if (msg.sender_id !== MLC_SUPPORT_ID) {
+            await db.from('messages').update({ read_at: new Date().toISOString() }).eq('id', msg.id)
+          }
+          renderSupportThread()
+        }
+      })
+    .subscribe()
+}
+
+function renderSupportThread() {
+  const conv = supportConvs.find(c => c.id === supportSelectedId)
+  if (!conv) return
+  const other = conv.other_user
+  const initials = other?.display_name ? other.display_name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) : '?'
+  const pane = document.getElementById('support-thread-pane')
+  pane.style.cssText = 'display:flex;flex-direction:column;overflow:hidden'
+
+  const bubblesHtml = supportMsgs.length
+    ? supportMsgs.map(m => {
+        const isMine = m.sender_id === MLC_SUPPORT_ID
+        const time = new Date(m.created_at).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
+        const imgHtml = m.image_url ? `<img src="${m.image_url}" style="max-width:220px;border-radius:10px;display:block;margin-bottom:${m.content?'6px':'0'}">` : ''
+        return `<div style="display:flex;flex-direction:column;align-items:${isMine?'flex-end':'flex-start'}">
+          <div style="max-width:72%;background:${isMine?'var(--teal-dark)':'var(--surface-low)'};color:${isMine?'#fff':'var(--on-surface)'};padding:${m.image_url&&!m.content?'4px':'10px 14px'};border-radius:${isMine?'16px 16px 4px 16px':'16px 16px 16px 4px'};font-size:14px;line-height:1.55;word-break:break-word;white-space:pre-wrap">${imgHtml}${m.content?esc(m.content):''}</div>
+          <div style="font-size:10px;color:var(--on-variant);margin-top:3px;padding:0 4px">${time}</div>
+        </div>`
+      }).join('')
+    : '<div style="text-align:center;color:var(--on-variant);font-size:12px;padding:20px">No messages yet</div>'
+
+  pane.innerHTML = `
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0">
+      <div style="width:36px;height:36px;border-radius:50%;background:${other?.avatar_color||'#9395d3'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700">${initials}</div>
+      <div style="font-weight:800;font-size:15px">${esc(other?.display_name||'Unknown')}</div>
+    </div>
+    <div id="support-thread" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px">${bubblesHtml}</div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0">
+      <textarea id="support-reply" rows="1" style="flex:1;min-height:42px;max-height:100px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:14px;outline:none;resize:none;transition:border-color .2s" placeholder="Reply as MLC Support…" onfocus="this.style.borderColor='var(--teal-dark)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSupportReply('${supportSelectedId}')}"></textarea>
+      <button class="btn btn-primary" style="width:auto;padding:0 18px;align-self:flex-end;height:42px" onclick="sendSupportReply('${supportSelectedId}')">Send</button>
+    </div>
+  `
+  const thread = document.getElementById('support-thread')
+  if (thread) thread.scrollTop = thread.scrollHeight
+}
+
+async function sendSupportReply(convId) {
+  const ta = document.getElementById('support-reply')
+  const content = ta?.value.trim()
+  if (!content || !convId) return
+  ta.value = ''
+
+  const { error } = await db.from('messages').insert({ conversation_id: convId, sender_id: MLC_SUPPORT_ID, content })
+  if (error) { toast('Error: ' + error.message); return }
+  await db.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', convId)
+
+  const { data } = await db.from('messages').select('*').eq('conversation_id', convId).order('created_at', { ascending: true })
+  supportMsgs = data || []
+  renderSupportThread()
+}
+
+function formatSupportTime(iso) {
+  const d = new Date(iso), now = new Date()
+  const diff = Math.floor((now - d) / 86400000)
+  if (diff === 0) return d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
+  if (diff === 1) return 'Yesterday'
+  if (diff < 7)  return d.toLocaleDateString('en-GB', { weekday:'short' })
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short' })
+}
+
+// ── REPORTS ──────────────────────────────────────────────────────
+let allReports = []
+
+async function loadReports() {
+  const el = document.getElementById('reports-list')
+  el.innerHTML = '<div style="padding:48px;text-align:center;color:var(--on-variant)">Loading…</div>'
+
+  const { data: reports } = await db.from('user_reports').select('*').order('created_at', { ascending: false })
+  if (!reports?.length) {
+    el.innerHTML = '<div style="padding:48px;text-align:center;color:var(--on-variant)">No reports yet</div>'
+    updateReportsBadge(0)
+    return
+  }
+
+  const userIds = [...new Set([...reports.map(r => r.reporter_id), ...reports.map(r => r.reported_id)].filter(Boolean))]
+  const { data: users } = await db.from('chat_users').select('id, display_name').in('id', userIds)
+  const nameMap = {}
+  ;(users || []).forEach(u => { nameMap[u.id] = u.display_name })
+
+  allReports = reports.map(r => ({ ...r, reporter_name: nameMap[r.reporter_id] || 'Unknown', reported_name: nameMap[r.reported_id] || 'Unknown' }))
+  updateReportsBadge(allReports.length)
+  renderReports()
+}
+
+function updateReportsBadge(count) {
+  const el = document.getElementById('reports-cnt')
+  if (el) { el.textContent = count; el.style.display = count > 0 ? 'inline' : 'none' }
+}
+
+function renderReports() {
+  const el = document.getElementById('reports-list')
+  if (!allReports.length) { el.innerHTML = '<div style="padding:48px;text-align:center;color:var(--on-variant)">No reports yet</div>'; return }
+
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Reported by</th>
+            <th>Reported user</th>
+            <th>Reason</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allReports.map(r => `
+            <tr>
+              <td style="padding:12px 14px;font-size:13px">${esc(r.reporter_name)}</td>
+              <td style="padding:12px 14px;font-size:13px;font-weight:600">${esc(r.reported_name)}</td>
+              <td style="padding:12px 14px">
+                <span style="background:var(--warn-bg);color:var(--warn);font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px">${esc(r.reason)}</span>
+              </td>
+              <td style="padding:12px 14px;font-size:12px;color:var(--on-variant)">${new Date(r.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</td>
+              <td style="padding:12px 14px">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  ${r.conversation_id ? `<button class="btn btn-sm" onclick="viewReportConversation('${r.conversation_id}')">View chat</button>` : '<span style="font-size:12px;color:var(--on-variant)">No chat</span>'}
+                  ${r.conversation_id ? `<button class="btn btn-sm btn-warn" onclick="disconnectConversation('${r.conversation_id}', '${esc(r.reporter_name)}', '${esc(r.reported_name)}')">Disconnect</button>` : ''}
+                  <button class="btn btn-sm btn-warn" onclick="banReportedUser('${r.reported_id}', '${esc(r.reported_name)}')">Ban</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteReportedUser('${r.reported_id}', '${esc(r.reported_name)}')">Delete</button>
+                  <button class="btn btn-sm btn-ok" onclick="clearReport('${r.id}')">Clear</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`
+}
+
+async function clearReport(reportId) {
+  const { error } = await db.from('user_reports').update({ status: 'resolved', resolved_at: new Date().toISOString() }).eq('id', reportId)
+  if (error) { toast('Could not clear report: ' + error.message, true); return }
+  allReports = allReports.filter(r => r.id !== reportId)
+  updateReportsBadge(allReports.length)
+  renderReports()
+  toast('Report cleared')
+}
+
+async function viewReportConversation(conversationId) {
+  // Switch to messages tab and open the conversation
+  switchTab('messages')
+  if (!supportConvs.length) await loadSupportMessages()
+  // Find the conversation in the support list or open directly
+  const conv = supportConvs.find(c => c.id === conversationId)
+  if (conv) {
+    openSupportConv(conversationId)
+  } else {
+    // Load it directly even if it's not a support conversation
+    await openSupportConv(conversationId)
+  }
+}
+
+async function deleteReportedUser(userId, name) {
+  if (!confirm(`Delete ${name} and all their data?\n\nThis will permanently remove their account, messages, and all data.\n\nThis cannot be undone.`)) return
+  const { data: { session } } = await db.auth.getSession()
+  const res = await fetch('https://emzlwkgpmckxqehsefyq.supabase.co/functions/v1/delete-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+    body: JSON.stringify({ userId }),
+  })
+  if (!res.ok) { toast('Delete failed — could not remove user'); return }
+  toast(`${name} deleted`)
+  allReports = allReports.filter(r => r.reported_id !== userId)
+  updateReportsBadge(allReports.length)
+  renderReports()
+}
+
+async function banReportedUser(userId, name) {
+  if (!confirm(`Ban ${name}?\n\nThey will be signed out immediately and unable to log back in.\n\nYou can reverse this in the Supabase dashboard if needed.`)) return
+  const { data: { session } } = await db.auth.getSession()
+  const res = await fetch('https://emzlwkgpmckxqehsefyq.supabase.co/functions/v1/ban-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+    body: JSON.stringify({ userId }),
+  })
+  if (!res.ok) { toast('Ban failed — could not ban user'); return }
+  toast(`${name} banned`)
+}
+
+async function disconnectConversation(conversationId, reporterName, reportedName) {
+  if (!confirm(`Delete the conversation between ${reporterName} and ${reportedName}?\n\nAll messages will be permanently removed.\n\nThis cannot be undone.`)) return
+  const { data: { session } } = await db.auth.getSession()
+  const res = await fetch('https://emzlwkgpmckxqehsefyq.supabase.co/functions/v1/disconnect-conversation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+    body: JSON.stringify({ conversationId }),
+  })
+  if (!res.ok) { toast('Failed — could not delete conversation'); return }
+  toast('Conversation deleted')
+  allReports = allReports.map(r => r.conversation_id === conversationId ? { ...r, conversation_id: null } : r)
+  renderReports()
+}
+
+
+// ── START ────────────────────────────────────────────────────────
+init()
+</script>
+</body>
+</html>

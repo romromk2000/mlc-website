@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seed Demo Data — MLC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Manrope', sans-serif; background: #f0faf9; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 16px; padding: 40px; width: 520px; box-shadow: 0 8px 40px rgba(0,106,98,.12); }
+    h1 { font-size: 20px; font-weight: 800; color: #006a62; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: #6c7a77; margin-bottom: 28px; }
+    .credentials { background: #e0f2f1; border-radius: 10px; padding: 14px 16px; margin-bottom: 24px; font-size: 13px; }
+    .credentials b { color: #006a62; }
+    .credentials p { margin-top: 4px; }
+    .step { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f3; font-size: 13px; }
+    .step:last-child { border-bottom: none; }
+    .step-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; background: #e2e2e5; color: #6c7a77; }
+    .step-icon.ok   { background: #e6f4ea; color: #1b5e20; }
+    .step-icon.err  { background: #ffdad6; color: #ba1a1a; }
+    .step-icon.spin { background: #e0f2f1; }
+    .spinner { width: 14px; height: 14px; border: 2px solid #b2dfdb; border-top-color: #006a62; border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .step-label { flex: 1; font-weight: 600; }
+    .step-detail { font-size: 11px; color: #6c7a77; margin-top: 2px; }
+    .btn { display: block; width: 100%; padding: 13px; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700; background: #006a62; color: #fff; margin-top: 24px; transition: opacity .15s; }
+    .btn:hover { opacity: .88; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .notice { font-size: 11px; color: #6c7a77; margin-top: 12px; text-align: center; line-height: 1.6; }
+    a { color: #006a62; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Create demo organiser</h1>
+  <p class="sub">Sets up a test account and dummy classes so you can preview the Organiser Portal.</p>
+
+  <div class="credentials">
+    <b>Demo credentials</b>
+    <p>Email: <b>demo.organiser@mylittlecircle.com</b></p>
+    <p>Password: <b>DemoOrg2025!</b></p>
+  </div>
+
+  <div id="steps"></div>
+
+  <button class="btn" id="run-btn" onclick="runSeed()">Run seed</button>
+  <p class="notice">
+    Requires the <code>user_id</code> column on the <code>classes</code> table.<br>
+    Run the migration in Supabase first if you haven't already.
+  </p>
+</div>
+
+<script>
+const { createClient } = window.supabase
+const db = createClient(
+  'https://emzlwkgpmckxqehsefyq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtemx3a2dwbWNreHFlaHNlZnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2Mzg2MzksImV4cCI6MjA5NTIxNDYzOX0.cY-nSK7N8xdhSnZ6U40C3yychdzV-T7wtbGX4MyfxdI'
+)
+
+const DEMO_EMAIL = 'demo.organiser@mylittlecircle.com'
+const DEMO_PASS  = 'DemoOrg2025!'
+
+const DUMMY_CLASSES = [
+  {
+    name: 'Baby Sensory Stars',
+    description: 'A magical world of lights, sounds, and textures for babies 0–13 months. Each session has a different theme to stimulate your baby\'s senses and support development.',
+    category: 'Sensory', event_type: 'recurring', status: 'approved',
+    day_of_week: 'Monday', recurrence: 'weekly',
+    time_start: '10:00', time_end: '11:00',
+    age_min_months: 0, age_max_months: 13,
+    price: 8.50, max_capacity: 12,
+    booking_type: 'booking_required',
+    venue_name: 'Cambridge Community Centre', street: '1 East Road', city: 'Cambridge', postcode: 'CB1 1PT',
+    shire_id: 'cambridgeshire', lat: 52.2053, lng: 0.1218,
+  },
+  {
+    name: 'Tiny Movers Yoga',
+    description: 'Baby and parent yoga designed to strengthen bonding, improve your baby\'s core strength and flexibility through gentle movement and stretching.',
+    category: 'Movement', event_type: 'recurring', status: 'approved',
+    day_of_week: 'Wednesday', recurrence: 'weekly',
+    time_start: '09:30', time_end: '10:30',
+    age_min_months: 3, age_max_months: 18,
+    price: 7.00, max_capacity: 10,
+    booking_type: 'booking_required',
+    venue_name: 'Trumpington Sports Hall', street: 'Anstey Way', city: 'Cambridge', postcode: 'CB2 9JB',
+    shire_id: 'cambridgeshire', lat: 52.1745, lng: 0.1148,
+  },
+  {
+    name: 'Music Bugs Cambridge',
+    description: 'Award-winning music classes for babies and toddlers. Songs, instruments, and movement to develop musical awareness and language skills from birth.',
+    category: 'Music', event_type: 'recurring', status: 'approved',
+    day_of_week: 'Friday', recurrence: 'weekly',
+    time_start: '10:00', time_end: '10:45',
+    age_min_months: 0, age_max_months: 48,
+    price: 9.50, max_capacity: 15,
+    booking_type: 'drop_in',
+    venue_name: 'St Barnabas Church Hall', street: 'Mill Road', city: 'Cambridge', postcode: 'CB1 3AD',
+    shire_id: 'cambridgeshire', lat: 52.1997, lng: 0.1367,
+  },
+  {
+    name: 'Baby Swimming — Water Babies',
+    description: 'Introducing your little one to the water in a warm, purpose-built pool. Builds water confidence, swimming skills, and is proven to improve sleep.',
+    category: 'Swimming', event_type: 'recurring', status: 'pending',
+    day_of_week: 'Thursday', recurrence: 'weekly',
+    time_start: '11:00', time_end: '11:30',
+    age_min_months: 0, age_max_months: 36,
+    price: 12.00, max_capacity: 8,
+    booking_type: 'booking_required',
+    venue_name: 'Parkside Pool', street: 'Gonville Place', city: 'Cambridge', postcode: 'CB1 1LY',
+    shire_id: 'cambridgeshire', lat: 52.2024, lng: 0.1282,
+  },
+  {
+    name: 'Messy Play & Art Day',
+    description: 'A one-off messy art afternoon for toddlers and pre-schoolers. Paint, glue, glitter, slime and more! Wear clothes you don\'t mind getting dirty.',
+    category: 'Art', event_type: 'one_off', status: 'pending',
+    start_date: '2026-07-12',
+    time_start: '14:00', time_end: '16:00',
+    age_min_months: 12, age_max_months: 60,
+    price: 5.00, max_capacity: 20,
+    booking_type: 'booking_required',
+    venue_name: 'Cherry Hinton Village Hall', street: 'High Street', city: 'Cambridge', postcode: 'CB1 9JT',
+    shire_id: 'cambridgeshire', lat: 52.1851, lng: 0.1637,
+  },
+  {
+    name: 'Sleep & Feeding Workshop',
+    description: 'Expert-led workshop covering newborn sleep patterns, safe sleep guidance, and breastfeeding / bottle feeding support for new parents.',
+    category: 'Feeding & Nutrition', event_type: 'one_off', status: 'rejected',
+    start_date: '2026-05-10',
+    time_start: '10:00', time_end: '12:00',
+    age_min_months: 0, age_max_months: 12,
+    price: 15.00, max_capacity: 25,
+    booking_type: 'booking_required',
+    venue_name: 'Online — Zoom', city: 'Cambridge',
+    shire_id: 'cambridgeshire',
+  },
+  {
+    name: 'Toddler Football Fun',
+    description: 'High-energy football sessions for toddlers using soft balls, mini goals and fun games. Develops coordination, motor skills and a love of sport from an early age.',
+    category: 'Sport', event_type: 'recurring', status: 'approved',
+    day_of_week: 'Saturday', recurrence: 'weekly',
+    time_start: '09:00', time_end: '09:45',
+    age_min_months: 18, age_max_months: 48,
+    price: 6.50, max_capacity: 16,
+    booking_type: 'drop_in',
+    venue_name: 'Coleridge Recreation Ground', street: 'Davy Road', city: 'Cambridge', postcode: 'CB1 3QQ',
+    shire_id: 'cambridgeshire', lat: 52.1946, lng: 0.1421,
+  },
+]
+
+const steps = [
+  { id: 'account',  label: 'Create demo account' },
+  { id: 'profile',  label: 'Set up organiser profile' },
+  { id: 'classes',  label: 'Insert dummy classes (7 entries)' },
+  { id: 'done',     label: 'All done' },
+]
+
+function renderSteps(states) {
+  document.getElementById('steps').innerHTML = steps.map(s => {
+    const st = states[s.id] || 'idle'
+    const icon = st === 'ok'      ? '✓'
+               : st === 'err'     ? '✕'
+               : st === 'loading' ? '<div class="spinner"></div>'
+               : '·'
+    const cls = st === 'ok' ? 'ok' : st === 'err' ? 'err' : st === 'loading' ? 'spin' : ''
+    return `<div class="step">
+      <div class="step-icon ${cls}">${icon}</div>
+      <div>
+        <div class="step-label">${s.label}</div>
+        ${states[s.id + '_detail'] ? `<div class="step-detail">${states[s.id + '_detail']}</div>` : ''}
+      </div>
+    </div>`
+  }).join('')
+}
+
+async function runSeed() {
+  const btn = document.getElementById('run-btn')
+  btn.disabled = true; btn.textContent = 'Running…'
+
+  const st = {}
+  const set = (key, val, detail) => { st[key] = val; if (detail) st[key + '_detail'] = detail; renderSteps(st) }
+
+  // 1. Create / sign in to demo account
+  set('account', 'loading')
+  let userId
+  const { data: signIn, error: siErr } = await db.auth.signInWithPassword({ email: DEMO_EMAIL, password: DEMO_PASS })
+  if (signIn?.user) {
+    userId = signIn.user.id
+    set('account', 'ok', 'Existing account found — signed in')
+  } else {
+    const { data: signUp, error: suErr } = await db.auth.signUp({ email: DEMO_EMAIL, password: DEMO_PASS })
+    if (suErr || !signUp?.user) {
+      set('account', 'err', suErr?.message || 'Sign-up failed')
+      btn.disabled = false; btn.textContent = 'Retry'
+      return
+    }
+    userId = signUp.user.id
+    set('account', 'ok', 'New account created')
+  }
+
+  // 2. Upsert profile
+  set('profile', 'loading')
+  const { error: profErr } = await db.from('profiles').upsert({
+    id: userId, first_name: 'Sarah', last_name: 'Mitchell',
+    avatar_color: '#9395d3',
+  })
+  if (profErr) { set('profile', 'err', profErr.message); btn.disabled = false; btn.textContent = 'Retry'; return }
+  set('profile', 'ok', 'Sarah Mitchell · demo.organiser@mylittlecircle.com')
+
+  // 3. Insert classes
+  set('classes', 'loading')
+  const payload = DUMMY_CLASSES.map(c => ({ ...c, user_id: userId, organiser: 'Sarah Mitchell' }))
+  const { error: clsErr } = await db.from('classes').insert(payload)
+  if (clsErr) {
+    set('classes', 'err', clsErr.message)
+    btn.disabled = false; btn.textContent = 'Retry'
+    return
+  }
+  set('classes', 'ok', '3 approved · 2 pending · 1 rejected · 1 one-off pending')
+
+  // 4. Done
+  set('done', 'ok', '')
+  btn.textContent = 'Done!'
+  btn.style.background = '#1b5e20'
+
+  // Sign out so user can log in fresh on organiser portal
+  await db.auth.signOut()
+
+  document.querySelector('.notice').innerHTML =
+    'Demo data created. <a href="organiser.html">Open the Organiser Portal</a> and sign in with the credentials above.'
+}
+
+renderSteps({})
+</script>
+</body>
+</html>
