@@ -469,7 +469,7 @@
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Name</th><th>Address</th><th>Scores</th><th>Status</th><th>Actions</th>
+              <th>Name</th><th>Type</th><th>Address</th><th>Scores</th><th>Status</th><th>Actions</th>
             </tr></thead>
             <tbody id="parks-tbody"></tbody>
           </table>
@@ -646,6 +646,19 @@ const PARK_TAGS = [
   'Free parking','Paid parking','Car park','Bike path','Scooter friendly',
   // Other activities
   'Dog friendly','Basketball court','Tennis courts','Skateboard area',
+]
+
+const OUTING_VENUE_TYPES = [
+  { value: 'soft_play',       label: 'Soft play',       emoji: '🧸' },
+  { value: 'library',         label: 'Library',         emoji: '📚' },
+  { value: 'lido',            label: 'Lido',            emoji: '🏊' },
+  { value: 'swimming_pool',   label: 'Swimming pool',   emoji: '🏊' },
+  { value: 'trampoline_park', label: 'Trampoline park', emoji: '🤸' },
+  { value: 'leisure_centre',  label: 'Leisure centre',  emoji: '🏋️' },
+  { value: 'farm',            label: 'Farm',            emoji: '🐄' },
+  { value: 'beach',           label: 'Beach',           emoji: '🏖️' },
+  { value: 'nature_trail',    label: 'Nature trail',    emoji: '🌿' },
+  { value: 'other',           label: 'Other outing',    emoji: '🎪' },
 ]
 
 // ── STATE ────────────────────────────────────────────────────────
@@ -1554,13 +1567,18 @@ function renderParks() {
   if (q) list = list.filter(p => p.name.toLowerCase().includes(q) || (p.address||'').toLowerCase().includes(q))
 
   const tbody = document.getElementById('parks-tbody')
-  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No parks found</td></tr>'; return }
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No parks found</td></tr>'; return }
   tbody.innerHTML = list.map(p => {
     const avg = avgScore(p)
     const statusBadge = p.status === 'deleted' ? 'badge-err' : isUnrated(p) ? 'badge-blue' : 'badge-ok'
     const statusLabel = p.status === 'deleted' ? 'Deleted' : isUnrated(p) ? 'Unrated' : 'Approved'
+    const isOuting = p.place_type === 'outing'
+    const venueLabel = isOuting
+      ? (OUTING_VENUE_TYPES.find(t => t.value === p.venue_type)?.emoji ?? '🎪') + ' ' + (OUTING_VENUE_TYPES.find(t => t.value === p.venue_type)?.label ?? 'Outing')
+      : '🛝 Park'
     return `<tr class="clickable" onclick="openParkPanel('${p.id}')">
       <td><div class="td-name">${esc(p.name)}</div></td>
+      <td><div class="td-meta">${venueLabel}</div></td>
       <td><div class="td-meta">${esc(p.address||'—')}</div></td>
       <td>${avg !== null ? `<span class="badge badge-ok">⭐ ${avg.toFixed(1)}</span>` : '—'}</td>
       <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
@@ -1599,7 +1617,8 @@ async function hardDeletePark(id, name) {
 function openParkPanel(id) {
   const park = id ? parks.find(p => p.id === id) : null
   panelMode = 'park'; panelItem = park
-  document.getElementById('panel-title').textContent = park ? `Edit: ${park.name}` : 'Add park'
+  const kind = park?.place_type === 'outing' ? 'outing' : 'park'
+  document.getElementById('panel-title').textContent = park ? `Edit: ${park.name}` : `Add ${kind}`
   document.getElementById('panel-delete-btn').style.display = park ? 'inline-flex' : 'none'
   document.getElementById('panel-body').innerHTML = buildParkForm(park)
   openPanel()
@@ -1623,11 +1642,31 @@ function buildParkForm(p) {
     </div></div>`
   ).join('')
 
+  const placeType = v.place_type || 'park'
+  const venueTypeChips = OUTING_VENUE_TYPES.map(t =>
+    `<span class="chip-opt ${v.venue_type === t.value ? 'active' : ''}" onclick="togglePlaceChip(this,'f-venue_type','${t.value}')">${t.emoji} ${t.label}</span>`
+  ).join('')
+
   return `
     <input type="hidden" id="f-id" value="${v.id||''}">
     <input type="hidden" id="f-photo_urls" value="${esc(JSON.stringify(v.photo_urls||[]))}">
+    <input type="hidden" id="f-place_type" value="${placeType}">
+    <input type="hidden" id="f-venue_type" value="${v.venue_type||''}">
 
-    <div class="field"><label>Name *</label><input id="f-name" value="${esc(v.name||'')}" placeholder="e.g. Arbury Court Play Park" onblur="autoGeocodePark()"></div>
+    <div class="field"><label>Place type</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button type="button" class="btn ${placeType==='park'?'btn-primary':'btn-ghost'}" style="flex:1;justify-content:center" onclick="setParkPlaceType('park')">🛝 Park / playground</button>
+        <button type="button" class="btn ${placeType==='outing'?'btn-primary':'btn-ghost'}" style="flex:1;justify-content:center" onclick="setParkPlaceType('outing')">🎪 Outing / venue</button>
+      </div>
+    </div>
+
+    <div id="venue-type-section" style="${placeType!=='outing'?'display:none':''}">
+      <div class="field"><label>Venue type</label>
+        <div class="chips-field" style="margin-top:4px">${venueTypeChips}</div>
+      </div>
+    </div>
+
+    <div class="field"><label>Name *</label><input id="f-name" value="${esc(v.name||'')}" placeholder="${placeType==='outing'?'e.g. Chesterton Lido':'e.g. Arbury Court Play Park'}" onblur="autoGeocodePark()"></div>
     <div class="field"><label>Description</label><textarea id="f-description">${esc(v.description||'')}</textarea></div>
     <div class="field"><label>Highlight tag</label><input id="f-highlight_tag" value="${esc(v.highlight_tag||'')}" placeholder="e.g. Great for toddlers"></div>
     <div class="field"><label>Address</label><input id="f-address" value="${esc(v.address||'')}" placeholder="10 High Street, Cambridge, CB1 1AB" onblur="autoGeocodePark()"></div>
@@ -1660,6 +1699,25 @@ function buildParkForm(p) {
       </select>
     </div>
   `
+}
+
+function setParkPlaceType(type) {
+  document.getElementById('f-place_type').value = type
+  document.getElementById('venue-type-section').style.display = type === 'outing' ? '' : 'none'
+  // update button styles
+  document.querySelectorAll('#panel-body [onclick^="setParkPlaceType"]').forEach(btn => {
+    const isActive = btn.getAttribute('onclick').includes(`'${type}'`)
+    btn.className = 'btn ' + (isActive ? 'btn-primary' : 'btn-ghost')
+    btn.style.flex = '1'; btn.style.justifyContent = 'center'
+  })
+}
+
+function togglePlaceChip(el, fieldId, value) {
+  const hidden = document.getElementById(fieldId)
+  const wasActive = el.classList.contains('active')
+  document.querySelectorAll(`[onclick*="togglePlaceChip(this,'${fieldId}'"]`).forEach(c => c.classList.remove('active'))
+  if (!wasActive) { el.classList.add('active'); hidden.value = value }
+  else hidden.value = ''
 }
 
 const parkScores = {}
@@ -1770,6 +1828,8 @@ async function savePark() {
 
     const tags = Array.from(document.querySelectorAll('.tag-cb:checked')).map(cb => cb.value)
 
+    const placeType = document.getElementById('f-place_type')?.value || 'park'
+    const venueType = document.getElementById('f-venue_type')?.value || null
     const payload = {
       name,
       description:   document.getElementById('f-description').value.trim() || null,
@@ -1779,6 +1839,8 @@ async function savePark() {
       photo_urls: photoUrls,
       tags: tags.length ? tags : null,
       status: document.getElementById('f-status').value,
+      place_type: placeType,
+      venue_type: placeType === 'outing' ? (venueType || null) : null,
       ...scores,
     }
     const id = document.getElementById('f-id').value
