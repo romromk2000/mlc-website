@@ -2134,13 +2134,15 @@ function numOrNull(id) {
 }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
 }
 
-function toast(msg) {
+function toast(msg, isError = false) {
   const el = document.getElementById('toast')
-  el.textContent = msg; el.classList.add('show')
-  setTimeout(() => el.classList.remove('show'), 2800)
+  el.textContent = msg
+  el.style.background = isError ? 'var(--danger)' : ''
+  el.classList.add('show')
+  setTimeout(() => { el.classList.remove('show'); el.style.background = '' }, 2800)
 }
 
 document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') login() })

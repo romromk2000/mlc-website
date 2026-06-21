@@ -755,7 +755,7 @@ async function loadDashboard() {
     db.from('events').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     db.from('parks').select('status'),
     db.from('conversations').select('id', { count: 'exact', head: true }).eq('user2_id', '00000000-0000-0000-0000-000000000001'),
-    db.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+    db.from('user_reports').select('id', { count: 'exact', head: true }),
   ])
 
   document.getElementById('dash-new-today').textContent = newToday ?? 0
@@ -924,12 +924,13 @@ async function deleteEvent(id) {
 
 function openEventPanel(id) {
   const ev = id ? events.find(e => e.id === id) : null
-  // Reuse the panel pattern — build a simple slide-in form
   const overlay = document.getElementById('panel-overlay')
-  const panel = document.getElementById('panel')
   const v = ev || {}
   const dates = (v.event_dates || []).join(', ')
+  panelMode = 'event'; panelItem = ev || null
   document.getElementById('panel-title').textContent = ev ? `Edit: ${ev.name}` : 'Add event'
+  document.getElementById('panel-delete-btn').style.display = ev ? 'inline-flex' : 'none'
+  document.getElementById('panel-delete-btn').textContent = 'Delete'
   document.getElementById('panel-body').innerHTML = `
       <div class="field"><label>Name *</label><input id="ef-name" value="${esc(v.name||'')}" placeholder="e.g. Summer Family Fair"></div>
       <div class="field"><label>Description</label><textarea id="ef-description" rows="3">${esc(v.description||'')}</textarea></div>
@@ -951,15 +952,15 @@ function openEventPanel(id) {
       <div class="field"><label>Address</label><input id="ef-address" value="${esc(v.address||'')}"></div>
       <div class="field"><label>Website</label><input id="ef-website" value="${esc(v.website||'')}" placeholder="https://…"></div>
       <div class="field"><label>Photo URL</label><input id="ef-photo" value="${esc(v.photo_url||'')}"></div>
+      <div class="field"><label>Shire</label><select id="ef-shire_id">
+        <option value="">Select shire…</option>
+        ${SHIRES.map(([val,lbl]) => `<option value="${val}"${v.shire_id===val?' selected':''}>${lbl}</option>`).join('')}
+      </select></div>
       <div class="field"><label>Status</label><select id="ef-status">
         <option value="pending"${v.status==='pending'||!ev?' selected':''}>Pending</option>
         <option value="approved"${v.status==='approved'?' selected':''}>Live</option>
         <option value="rejected"${v.status==='rejected'?' selected':''}>Rejected</option>
       </select></div>
-      <div style="display:flex;gap:10px;margin-top:8px">
-        <button class="btn btn-primary" onclick="saveEvent('${ev?.id||''}')">Save event</button>
-        ${ev ? `<button class="btn btn-danger" onclick="deleteEvent('${ev.id}');closePanel()">Delete</button>` : ''}
-      </div>
   `
   overlay.classList.add('open')
 }
@@ -983,7 +984,7 @@ async function saveEvent(id) {
     photo_url: document.getElementById('ef-photo').value.trim() || null,
     website: document.getElementById('ef-website').value.trim() || null,
     status: document.getElementById('ef-status').value,
-    shire_id: 'cambridgeshire',
+    shire_id: document.getElementById('ef-shire_id').value || null,
   }
   let saved
   if (id) {
@@ -1003,10 +1004,12 @@ async function saveEvent(id) {
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────
-function toast(msg) {
+function toast(msg, isError = false) {
   const el = document.getElementById('toast')
-  el.textContent = msg; el.classList.add('show')
-  setTimeout(() => el.classList.remove('show'), 2800)
+  el.textContent = msg
+  el.style.background = isError ? 'var(--danger)' : ''
+  el.classList.add('show')
+  setTimeout(() => { el.classList.remove('show'); el.style.background = '' }, 2800)
 }
 
 // ── CLASSES ──────────────────────────────────────────────────────
@@ -1340,6 +1343,7 @@ async function savePanel() {
   if (panelMode === 'class') await saveClass()
   else if (panelMode === 'park') await savePark()
   else if (panelMode === 'user') await saveUser()
+  else if (panelMode === 'event') await saveEvent(panelItem?.id || '')
 }
 
 async function saveClass() {
@@ -1425,6 +1429,10 @@ async function deleteFromPanel() {
     await db.from('classes').delete().eq('id', panelItem.id)
     classes = classes.filter(c => c.id !== panelItem.id)
     renderClasses()
+  } else if (panelMode === 'event') {
+    await db.from('events').delete().eq('id', panelItem.id)
+    events = events.filter(e => e.id !== panelItem.id)
+    renderEvents()
   } else {
     await db.from('parks').delete().eq('id', panelItem.id)
     parks = parks.filter(p => p.id !== panelItem.id)
@@ -1498,14 +1506,16 @@ function renderPendingRatings() {
       <td>${fmtScore(s.score_busy)}</td>
       <td><span class="td-meta">${date}</span></td>
       <td><div class="actions-cell">
-        <button class="btn btn-ok btn-sm" onclick="approveParkRating('${s.id}','${s.park_id}',${JSON.stringify(s)})">Approve</button>
+        <button class="btn btn-ok btn-sm" onclick="approveParkRating('${s.id}','${s.park_id}')">Approve</button>
         <button class="btn btn-danger btn-sm" onclick="rejectParkRating('${s.id}')">Reject</button>
       </div></td>
     </tr>`
   }).join('')
 }
 
-async function approveParkRating(submissionId, parkId, sub) {
+async function approveParkRating(submissionId, parkId) {
+  const sub = pendingRatings.find(s => s.id === submissionId)
+  if (!sub) return
   const scores = {
     score_safety: sub.score_safety,
     score_equipment: sub.score_equipment,
@@ -1599,10 +1609,11 @@ function avgScore(p) {
 }
 
 async function quickParkStatus(id, status) {
+  if (status === 'deleted' && !confirm('Archive this park? It will be hidden from the app.')) return
   await db.from('parks').update({ status }).eq('id', id)
   parks = parks.map(p => p.id === id ? { ...p, status } : p)
   renderParks()
-  toast(status === 'deleted' ? 'Park deleted' : 'Park restored ✓')
+  toast(status === 'deleted' ? 'Park archived' : 'Park restored ✓')
 }
 
 async function hardDeletePark(id, name) {
@@ -1996,8 +2007,6 @@ function filterClassesByOrganiser(userId) {
   q.value = name.split(' ')[0]
   classFilter = 'all'
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === 'classes'))
-  classes = classes.filter(c => c.user_id === userId || true)
-  const prevClasses = classes
   const filtered = classes.filter(c => c.user_id === userId)
   const tbody = document.getElementById('classes-tbody')
   if (!filtered.length) { renderClasses(); return }
@@ -2139,7 +2148,7 @@ function numOrNull(id) {
 }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')
 }
 
 // ── PREVIEWS ─────────────────────────────────────────────────────
@@ -2303,7 +2312,7 @@ function renderSupportThread() {
     ? supportMsgs.map(m => {
         const isMine = m.sender_id === MLC_SUPPORT_ID
         const time = new Date(m.created_at).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' })
-        const imgHtml = m.image_url ? `<img src="${m.image_url}" style="max-width:220px;border-radius:10px;display:block;margin-bottom:${m.content?'6px':'0'}">` : ''
+        const imgHtml = m.image_url ? `<img src="${esc(m.image_url)}" style="max-width:220px;border-radius:10px;display:block;margin-bottom:${m.content?'6px':'0'}">` : ''
         return `<div style="display:flex;flex-direction:column;align-items:${isMine?'flex-end':'flex-start'}">
           <div style="max-width:72%;background:${isMine?'var(--teal-dark)':'var(--surface-low)'};color:${isMine?'#fff':'var(--on-surface)'};padding:${m.image_url&&!m.content?'4px':'10px 14px'};border-radius:${isMine?'16px 16px 4px 16px':'16px 16px 16px 4px'};font-size:14px;line-height:1.55;word-break:break-word;white-space:pre-wrap">${imgHtml}${m.content?esc(m.content):''}</div>
           <div style="font-size:10px;color:var(--on-variant);margin-top:3px;padding:0 4px">${time}</div>
@@ -2330,10 +2339,10 @@ async function sendSupportReply(convId) {
   const ta = document.getElementById('support-reply')
   const content = ta?.value.trim()
   if (!content || !convId) return
-  ta.value = ''
 
   const { error } = await db.from('messages').insert({ conversation_id: convId, sender_id: MLC_SUPPORT_ID, content })
-  if (error) { toast('Error: ' + error.message); return }
+  if (error) { toast('Error: ' + error.message, true); return }
+  ta.value = ''
   await db.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', convId)
 
   const { data } = await db.from('messages').select('*').eq('conversation_id', convId).order('created_at', { ascending: true })
