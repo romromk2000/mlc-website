@@ -452,7 +452,7 @@
         <div class="stats-row" id="park-stats"></div>
 
         <div id="pending-ratings-section" style="display:none;margin-bottom:24px">
-          <h3 style="font-size:15px;font-weight:700;color:#e65100;margin-bottom:10px">⏳ Pending ratings</h3>
+          <h3 style="font-size:15px;font-weight:700;color:#e65100;margin-bottom:10px">⏳ Pending MLC Scores</h3>
           <div class="table-wrap">
             <table>
               <thead><tr>
@@ -469,7 +469,7 @@
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Name</th><th>Type</th><th>Address</th><th>Scores</th><th>Status</th><th>Actions</th>
+              <th>Name</th><th>Type</th><th>Address</th><th>MLC Score</th><th>Status</th><th>Actions</th>
             </tr></thead>
             <tbody id="parks-tbody"></tbody>
           </table>
@@ -754,7 +754,7 @@ async function loadDashboard() {
     db.from('classes').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     db.from('events').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     db.from('parks').select('status'),
-    db.from('conversations').select('id', { count: 'exact', head: true }).eq('user2_id', '00000000-0000-0000-0000-000000000001'),
+    db.from('conversations').select('id', { count: 'exact', head: true }).or('user1_id.eq.00000000-0000-0000-0000-000000000001,user2_id.eq.00000000-0000-0000-0000-000000000001'),
     db.from('user_reports').select('id', { count: 'exact', head: true }),
   ])
 
@@ -2412,7 +2412,7 @@ function renderReports() {
               <td style="padding:12px 14px">
                 <span style="background:var(--warn-bg);color:var(--warn);font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px">${esc(r.reason)}</span>
               </td>
-              <td style="padding:12px 14px;font-size:12px;color:var(--on-variant)">${new Date(r.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</td>
+              <td style="padding:12px 14px;font-size:12px;color:var(--on-variant)">${new Date(r.created_at).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</td>
               <td style="padding:12px 14px">
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                   ${r.conversation_id ? `<button class="btn btn-sm" onclick="viewReportConversation('${r.conversation_id}')">View chat</button>` : '<span style="font-size:12px;color:var(--on-variant)">No chat</span>'}

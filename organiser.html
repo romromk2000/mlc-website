@@ -1507,9 +1507,10 @@ function isEventUpcoming(ev) {
 function formatEventDates(dates) {
   if (!dates?.length) return '—'
   const sorted = [...dates].sort()
-  if (sorted.length === 1) return new Date(sorted[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  const first = new Date(sorted[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-  const last  = new Date(sorted[sorted.length - 1]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const parseDate = d => new Date(d + 'T00:00:00')
+  if (sorted.length === 1) return parseDate(sorted[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const first = parseDate(sorted[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const last  = parseDate(sorted[sorted.length - 1]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   return sorted.length === 2 ? `${first} & ${last}` : `${first} (+${sorted.length - 1} more)`
 }
 
@@ -2061,6 +2062,7 @@ async function addBooking(userId, classId, userName) {
 async function sendGroupMessage(classId) {
   const text = document.getElementById('group-msg-text')?.value.trim()
   if (!text) { toast('Write a message first'); return }
+  if (!confirm('Send this message to all confirmed attendees? This cannot be undone.')) return
   const btn = document.getElementById('group-msg-btn')
   btn.textContent = 'Sending…'; btn.disabled = true
 
@@ -2146,6 +2148,14 @@ function toast(msg, isError = false) {
 }
 
 document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') login() })
+
+document.addEventListener('click', function(e) {
+  const results = document.getElementById('booking-search-results')
+  const search  = document.getElementById('booking-search')
+  if (results && search && !search.contains(e.target) && !results.contains(e.target)) {
+    results.style.display = 'none'
+  }
+})
 
 init()
 </script>
